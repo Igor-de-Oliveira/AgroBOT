@@ -1,0 +1,641 @@
+[
+    {
+        "data": "2024-12-09",
+        "hora": "20:05:00",
+        "temp. interior": 24.7,
+        "temp. exterior": 22.7,
+        "co2": 416.0,
+        "ph": 3.9,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "20:15:00",
+        "temp. interior": 24.7,
+        "temp. exterior": 22.8,
+        "co2": 420.0,
+        "ph": 3.76,
+        "ce": 0.57
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "20:25:00",
+        "temp. interior": 24.5,
+        "temp. exterior": 22.8,
+        "co2": 416.0,
+        "ph": 3.65,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "20:35:00",
+        "temp. interior": 24.4,
+        "temp. exterior": 22.7,
+        "co2": 416.0,
+        "ph": 3.35,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "20:45:00",
+        "temp. interior": 24.2,
+        "temp. exterior": 22.9,
+        "co2": 416.0,
+        "ph": 3.55,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "20:55:00",
+        "temp. interior": 24.0,
+        "temp. exterior": 22.9,
+        "co2": 412.0,
+        "ph": 3.76,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "21:05:00",
+        "temp. interior": 23.9,
+        "temp. exterior": 22.8,
+        "co2": 412.0,
+        "ph": 3.76,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "21:15:00",
+        "temp. interior": 23.9,
+        "temp. exterior": 22.8,
+        "co2": 420.0,
+        "ph": 3.43,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "21:26:00",
+        "temp. interior": 23.8,
+        "temp. exterior": 22.7,
+        "co2": 416.0,
+        "ph": 3.77,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "21:36:00",
+        "temp. interior": 23.7,
+        "temp. exterior": 22.6,
+        "co2": 416.0,
+        "ph": 3.42,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "21:46:00",
+        "temp. interior": 23.6,
+        "temp. exterior": 22.7,
+        "co2": 420.0,
+        "ph": 4.1,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "21:56:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 22.7,
+        "co2": 412.0,
+        "ph": 3.85,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "22:06:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 22.6,
+        "co2": 428.0,
+        "ph": 3.63,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "22:16:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 22.8,
+        "co2": 420.0,
+        "ph": 3.73,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "22:26:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 22.7,
+        "co2": 416.0,
+        "ph": 3.61,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "22:36:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 22.7,
+        "co2": 412.0,
+        "ph": 3.33,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "22:47:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 22.6,
+        "co2": 412.0,
+        "ph": 3.89,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "22:57:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 22.6,
+        "co2": 412.0,
+        "ph": 3.93,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "23:07:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 22.6,
+        "co2": 416.0,
+        "ph": 3.94,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "23:17:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 22.5,
+        "co2": 412.0,
+        "ph": 3.64,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "23:27:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 22.1,
+        "co2": 416.0,
+        "ph": 3.67,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "23:37:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.9,
+        "co2": 416.0,
+        "ph": 4.01,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "23:47:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.8,
+        "co2": 420.0,
+        "ph": 4.06,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-09",
+        "hora": "23:57:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.8,
+        "co2": 416.0,
+        "ph": 3.78,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "00:08:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.7,
+        "co2": 416.0,
+        "ph": 3.83,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "00:18:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 22.0,
+        "co2": 412.0,
+        "ph": 3.82,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "00:28:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.7,
+        "co2": 412.0,
+        "ph": 4.04,
+        "ce": 0.58
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "00:38:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.8,
+        "co2": 412.0,
+        "ph": 3.57,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "00:48:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.6,
+        "co2": 420.0,
+        "ph": 3.45,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "00:58:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.6,
+        "co2": 412.0,
+        "ph": 3.83,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "01:08:00",
+        "temp. interior": 23.6,
+        "temp. exterior": 21.6,
+        "co2": 420.0,
+        "ph": 3.95,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "01:18:00",
+        "temp. interior": 23.6,
+        "temp. exterior": 21.8,
+        "co2": 408.0,
+        "ph": 3.93,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "01:29:00",
+        "temp. interior": 23.6,
+        "temp. exterior": 21.6,
+        "co2": 412.0,
+        "ph": 3.65,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "01:39:00",
+        "temp. interior": 23.6,
+        "temp. exterior": 21.7,
+        "co2": 420.0,
+        "ph": 3.88,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "01:49:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.5,
+        "co2": 420.0,
+        "ph": 3.64,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "01:59:00",
+        "temp. interior": 23.5,
+        "temp. exterior": 21.4,
+        "co2": 416.0,
+        "ph": 3.87,
+        "ce": 0.59
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "02:09:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.5,
+        "co2": 420.0,
+        "ph": 3.86,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "02:19:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.4,
+        "co2": 416.0,
+        "ph": 3.75,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "02:29:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.5,
+        "co2": 412.0,
+        "ph": 4.07,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "02:40:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.6,
+        "co2": 412.0,
+        "ph": 3.59,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "02:50:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.6,
+        "co2": 412.0,
+        "ph": 4.07,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "03:00:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.7,
+        "co2": 412.0,
+        "ph": 3.85,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "03:10:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.7,
+        "co2": 416.0,
+        "ph": 4.06,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "03:20:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.7,
+        "co2": 420.0,
+        "ph": 3.98,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "03:30:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.7,
+        "co2": 412.0,
+        "ph": 3.83,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "03:40:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.4,
+        "co2": 408.0,
+        "ph": 3.98,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "03:50:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.5,
+        "co2": 420.0,
+        "ph": 4.0,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "04:01:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.2,
+        "co2": 416.0,
+        "ph": 4.01,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "04:11:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.5,
+        "co2": 420.0,
+        "ph": 3.8,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "04:21:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.6,
+        "co2": 412.0,
+        "ph": 3.86,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "04:31:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.6,
+        "co2": 416.0,
+        "ph": 3.84,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "04:41:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.7,
+        "co2": 420.0,
+        "ph": 3.89,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "04:51:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.7,
+        "co2": 412.0,
+        "ph": 3.69,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "05:01:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.5,
+        "co2": 412.0,
+        "ph": 3.72,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "05:11:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.6,
+        "co2": 416.0,
+        "ph": 3.93,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "05:22:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.4,
+        "co2": 412.0,
+        "ph": 3.82,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "05:32:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.6,
+        "co2": 416.0,
+        "ph": 3.93,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "05:42:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.5,
+        "co2": 412.0,
+        "ph": 3.67,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "05:52:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.8,
+        "co2": 412.0,
+        "ph": 3.79,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "06:02:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.5,
+        "co2": 412.0,
+        "ph": 3.97,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "06:12:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.7,
+        "co2": 420.0,
+        "ph": 3.73,
+        "ce": 0.6
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "06:22:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.6,
+        "co2": 412.0,
+        "ph": 3.99,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "06:32:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.5,
+        "co2": 416.0,
+        "ph": 3.76,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "06:43:00",
+        "temp. interior": 23.4,
+        "temp. exterior": 21.4,
+        "co2": 416.0,
+        "ph": 4.13,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "06:53:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.2,
+        "co2": 412.0,
+        "ph": 3.83,
+        "ce": 0.61
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "07:03:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.2,
+        "co2": 416.0,
+        "ph": 3.87,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "07:13:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.2,
+        "co2": 412.0,
+        "ph": 3.8,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "07:23:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.4,
+        "co2": 416.0,
+        "ph": 3.79,
+        "ce": 0.63
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "07:33:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.3,
+        "co2": 412.0,
+        "ph": 3.81,
+        "ce": 0.62
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "07:43:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.6,
+        "co2": 416.0,
+        "ph": 3.63,
+        "ce": 0.63
+    },
+    {
+        "data": "2024-12-10",
+        "hora": "07:53:00",
+        "temp. interior": 23.3,
+        "temp. exterior": 21.9,
+        "co2": 408.0,
+        "ph": 4.05,
+        "ce": 0.63
+    }
+]

@@ -1,11 +1,13 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import Qdrant
 from langchain.schema import HumanMessage
 from typing import List, Dict
-import uvicorn
+import glob
+import json
 import os
+import uvicorn
+
 
 app = FastAPI()
 
@@ -82,6 +84,28 @@ def generate_custom_prompt(qdrant, query):
                     """
     return augment_prompt
 
+def process_json_files(input_directory, output_directory):
+    os.makedirs(output_directory, exist_ok=True)
+
+    # Process each JSON file and generate embeddings
+    for json_file in glob.glob(f"{input_directory}/*.json"):
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Combine all records into a single text for embedding
+        combined_text = "\n".join(
+            " ".join(f"{key}: {value}" for key, value in record.items()) for record in data
+        )
+
+        # Generate embeddings
+        embedding_result = embeddings.embed_documents([combined_text])  # Use embed_documents for generating embeddings
+
+        # Save embeddings to a new file
+        output_file = os.path.join(output_directory, os.path.basename(json_file).replace(".json", "_embeddings.json"))
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(embedding_result, f, ensure_ascii=False, indent=4)
+
+        print(f"Embeddings for file '{json_file}' saved to {output_file}")
 
 dataset = "prepare_dataset_from_json(output_dir)"
 if dataset is not None:
@@ -126,7 +150,20 @@ def chat(string: str):
     except Exception as e:
         return {"error": str(e)}
 
+@app.post("/process_json")
+def process_json():
+    """
+    Endpoint para processar arquivos JSON e gerar embeddings.
 
+    :param input_directory: Diretório de entrada para os arquivos JSON.
+    :param output_directory: Diretório de saída para os arquivos de embeddings.
+    """
+
+    input_directory = f"C:/Users/Pessoal/Desktop/tcc/testes/output"
+    output_directory = f"C:/Users/Pessoal/Desktop/tcc/testes/output_embeddings"
+
+    process_json_files(input_directory, output_directory)
+    return {"message": "Processamento de JSON concluído."}
 
 def main():
     """Inicia a API utilizando Uvicorn."""

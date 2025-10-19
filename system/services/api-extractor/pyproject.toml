@@ -1,0 +1,12 @@
+[project]
+name = "api-extractor"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.12.2"
+dependencies = [
+    "fastapi==0.119.0",
+    "python-multipart==0.0.20",
+    "pandas==2.2.2",
+    "uvicorn==0.30.6",
+]

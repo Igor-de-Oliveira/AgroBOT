@@ -1,0 +1,14 @@
+[project]
+name = "api-llm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.12.2"
+dependencies = [
+    "dotenv==0.9.9",
+    "fastapi==0.119.0",
+    "langchain==1.0.0",
+    "langchain-openai==1.0.0",
+    "python-multipart==0.0.20",
+    "uvicorn==0.30.6",
+]

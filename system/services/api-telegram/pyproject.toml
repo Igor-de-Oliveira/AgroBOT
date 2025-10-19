@@ -1,0 +1,11 @@
+[project]
+name = "api-telegram"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.2"
+dependencies = [
+    "dotenv==0.9.9",
+    "python-telegram-bot==22.5",
+    "requests==2.32.5",
+]

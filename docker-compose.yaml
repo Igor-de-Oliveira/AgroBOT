@@ -1,12 +1,29 @@
-version: "3.9"
 services:
   api-extractor:
     build: ./system/services/api-extractor
     container_name: api-extractor
+    env_file:
+      - ./system/.env
+    depends_on:
+      api-llm:
+        condition: service_started
     environment:
       TZ: "America/Sao_Paulo"
     ports:
       - "8001:8001"
+    restart: always
+    networks:
+      - app-network
+  
+  api-llm:
+    build: ./system/services/api-llm
+    container_name: api-llm
+    env_file:
+      - ./system/.env
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "8002:8002"
     restart: always
     networks:
       - app-network

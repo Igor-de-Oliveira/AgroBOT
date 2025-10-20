@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  api-extractor:
+    build: ./system/services/api-extractor
+    container_name: api-extractor
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "8001:8001"
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

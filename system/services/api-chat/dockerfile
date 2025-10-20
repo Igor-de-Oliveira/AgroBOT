@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+
+ARG PYTHON_VERSION=3.12.2
+FROM python:${PYTHON_VERSION}-slim AS base
+
+# Evita hardlinks (melhor com overlayfs) e garante que o uv use o Python do sistema
+ENV UV_LINK_MODE=copy \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Dependências básicas e instalação do uv
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl ca-certificates tzdata && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instala o uv (Astral)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+WORKDIR /app
+
+# Copia somente manifestos primeiro (cache de deps)
+COPY pyproject.toml uv.lock* ./
+
+# Instala as dependências no ambiente do projeto (sem dev)
+# --frozen exige que o lock exista e evita resolver de novo
+RUN uv sync --frozen --no-dev --python /usr/local/bin/python
+
+# Agora copia o código
+COPY src ./src
+
+# Usuário não-root
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Timezone (opcional, Brasil)
+ENV TZ=America/Sao_Paulo
+
+# Comando de execução:
+# Use "uv run" para garantir o mesmo ambiente
+# Troque o caminho para o seu main se necessário
+CMD ["uv", "run", "uvicorn", "src.api-chat.main:app", "--host", "0.0.0.0", "--port", "8003"]
+

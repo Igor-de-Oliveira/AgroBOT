@@ -28,6 +28,22 @@ services:
     networks:
       - app-network
 
+  api-chat:
+    build: ./system/services/api-chat
+    container_name: api-chat
+    env_file:
+      - ./system/.env
+    depends_on:
+      api-llm:
+        condition: service_started
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "8003:8003"
+    restart: always
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

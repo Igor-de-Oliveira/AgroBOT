@@ -22,7 +22,6 @@ if Config.EMBEDDING_TYPE == "openai":
     embeddings = OpenAIEmbeddings(
         model=Config.MODEL_EMBEDDING,
         openai_api_key=Config.API_KEY
-        
     )
 else:
     raise ValueError(f"Tipo de embedding '{Config.EMBEDDING_TYPE}' não suportado.")
@@ -115,8 +114,8 @@ def chat(string: str):
         interactions.append({
             "question": query,
             "answer": response.content,
-            "retrieved_contexts": retrieved_contexts,  # Ensure this key is always present
-            "contexts": retrieved_contexts  # Keep contexts for compatibility
+            "retrieved_contexts": retrieved_contexts,
+            "contexts": retrieved_contexts
         })
 
         return {"response": response.content}

@@ -36,7 +36,7 @@ services:
     env_file:
       - ./system/.env
     depends_on:
-      api-chat:
+      api-llm:
         condition: service_started
     environment:
       TZ: "America/Sao_Paulo"

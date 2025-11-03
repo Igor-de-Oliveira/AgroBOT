@@ -22,7 +22,7 @@ class Config:
     EMBEDDING_TYPE = os.getenv("EMBEDDING_TYPE", "openai")
 
     BASE_OUTPUT_DIR = "./processed_data"
-    BD_VETORIAL_URL = "http://localhost:8005" #os.getenv("BD_VETORIAL_URL", "http://localhost:8005")
+    BD_VETORIAL_URL = os.getenv("BD_VETORIAL_URL", "http://localhost:8005")
 
 if Config.EMBEDDING_TYPE == "openai":
     embeddings = OpenAIEmbeddings(

@@ -9,7 +9,7 @@ load_dotenv()
 # TOKEN do Bot do Telegram
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-API_URL = "http://localhost:8003/chat"
+API_URL = os.getenv("API_URL_CHAT", "http://localhost:8002/chat")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Olá! Sou um bot para cultivo hidropônico. Me envie sua pergunta.")

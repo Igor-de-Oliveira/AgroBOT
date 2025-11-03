@@ -3,6 +3,8 @@ import uvicorn
 import os
 import pandas as pd
 import json
+from odf import *
+import requests
 from datetime import time
 
 app = FastAPI()
@@ -70,21 +72,35 @@ def process_ods_to_json_by_interval(file_path, output_dir):
         print(f"Erro ao processar o arquivo: {e}")
 
 @app.post("/process_ods")
-def process_ods(
-    file: UploadFile = File(None)
-    ):
-    """
-    Endpoint para processar um arquivo ODS e salvar os dados em JSON por intervalo.
+async def process_ods(file: UploadFile = File(...)):
+    # Criar diretório temporário
+    os.makedirs("temp", exist_ok=True)
+    temp_path = f"temp/{file.filename}"
 
-    :param file_path: Caminho para o arquivo ODS.
-    :param output_dir: Diretório de saída para os arquivos JSON.
-    """
+    # Salvar o arquivo enviado em disco
+    with open(temp_path, "wb") as buffer:
+        buffer.write(await file.read())
 
-    file_path = file
-    output_dir = f"./system/services/api-extractor/arquivos-testes/output"
+    # Diretório de saída
+    output_dir = os.path.join("processed_data", os.path.splitext(file.filename)[0])
+    os.makedirs(output_dir, exist_ok=True)
 
-    process_ods_to_json_by_interval(file_path, output_dir)
-    return {"message": "Processamento concluído."}
+    process_ods_to_json_by_interval(temp_path, output_dir)
+
+    api_destino = "http://api-llm:8002/upload_json"  # Use o nome do serviço do Docker
+
+    for root, _, files in os.walk(output_dir):
+        for filename in files:
+            if filename.endswith(".json"):
+                file_path = os.path.join(root, filename)
+                with open(file_path, "rb") as f:
+                    response = requests.post(api_destino, files={"file": (filename, f, "application/json")})
+                    print(f"Enviado {filename} -> {response.status_code}")
+
+    # (Opcional) Remover arquivo temporário
+    os.remove(temp_path)
+
+    return {"message": "Processamento concluído com sucesso!"}
 
 def main():
     """Inicia a API utilizando Uvicorn."""

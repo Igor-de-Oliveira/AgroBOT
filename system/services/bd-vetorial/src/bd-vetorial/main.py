@@ -18,8 +18,6 @@ from uuid import uuid4
 
 app = FastAPI()
 
-# ------------------- Config -------------------
-
 class Config:
     load_dotenv()
     QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
@@ -44,8 +42,8 @@ def ensure_collection():
         info = qdrant.get_collection(Config.QDRANT_COLLECTION)
         # Checa dimensão configurada vs existente
         cur = qdrant.get_collection(Config.QDRANT_COLLECTION).config.params
-        cur_dim = cur.vectors.size  # type: ignore
-        cur_dist = cur.vectors.distance  # type: ignore
+        cur_dim = cur.vectors.size
+        cur_dist = cur.vectors.distance
         if cur_dim != Config.VECTOR_DIM or cur_dist != DISTANCE:
             # recria para alinhar
             qdrant.recreate_collection(
@@ -53,7 +51,6 @@ def ensure_collection():
                 vectors_config=VectorParams(size=Config.VECTOR_DIM, distance=DISTANCE),
             )
     except Exception:
-        # não existe -> cria
         qdrant.recreate_collection(
             collection_name=Config.QDRANT_COLLECTION,
             vectors_config=VectorParams(size=Config.VECTOR_DIM, distance=DISTANCE),
@@ -64,16 +61,15 @@ def filt_from_eq_dict(filters: Optional[Dict[str, Any]]) -> Optional[Filter]:
         return None
     must = []
     for k, v in filters.items():
-        # por padrão guardaremos seu objeto original em payload.record
-        # então filtre por "record.<campo>"
+
         must.append(FieldCondition(key=f"record.{k}", match=MatchValue(value=v)))
     return Filter(must=must) if must else None
 
-# ------------------- Schemas -------------------
 
+# ------------------- Schemas -------------------
 class PointIn(BaseModel):
     id: Optional[str] = None
-    vector: List[float]  # não validamos dimensão aqui p/ performance
+    vector: List[float]
     payload: Optional[Dict[str, Any]] = None
 
 class UpsertPack(BaseModel):
@@ -84,8 +80,6 @@ class SearchByVector(BaseModel):
     vector: List[float]
     top_k: int = 5
     filters: Optional[Dict[str, Any]] = None
-
-# ------------------- Endpoints -------------------
 
 @app.get("/health")
 def health():
@@ -118,7 +112,6 @@ def upsert_points(points: List[PointIn]):
     ]
     """
     ensure_collection()
-    # valida dimensão de amostra (opcional, rápido)
     if points and len(points[0].vector) != Config.VECTOR_DIM:
         raise HTTPException(status_code=400, detail=f"Dimensão do vetor ({len(points[0].vector)}) difere de VECTOR_DIM={Config.VECTOR_DIM}")
 
@@ -148,10 +141,8 @@ def upload_pack(data: UpsertPack):
     -> faz o zip record+embedding e envia p/ Qdrant (payload.record = record)
     """
     ensure_collection()
-    # Validar se os registros e embeddings têm o mesmo comprimento
     if len(data.records) != len(data.embeddings):
         raise HTTPException(status_code=400, detail="records e embeddings precisam ter o mesmo comprimento")
-    # Validar se a dimensão coincide com a configuração
     if data.embeddings and any(len(vec) != Config.VECTOR_DIM for vec in data.embeddings):
         raise HTTPException(status_code=400, detail=f"Dimensão dos vetores difere de VECTOR_DIM={Config.VECTOR_DIM}")
     
@@ -162,44 +153,6 @@ def upload_pack(data: UpsertPack):
                 id=str(uuid4()),
                 vector=vec,
                 payload={"record": rec}
-            )
-        )
-    try:
-        qdrant.upsert(Config.QDRANT_COLLECTION, points)
-        return {"inserted": len(points), "collection": Config.QDRANT_COLLECTION}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao inserir: {e}")
-
-@app.post("/upload_duplo")
-async def upload_duplo(records_file: UploadFile = File(...), embeddings_file: UploadFile = File(...)):
-    """
-    Ingestão via 2 arquivos:
-      - records_file: JSON com lista de objetos
-      - embeddings_file: JSON com lista de vetores (mesmo tamanho)
-    """
-    ensure_collection()
-
-    try:
-        rec_bytes = await records_file.read()
-        emb_bytes = await embeddings_file.read()
-        records = json.loads(rec_bytes.decode("utf-8"))
-        embeddings = json.loads(emb_bytes.decode("utf-8"))
-        if not isinstance(records, list) or not isinstance(embeddings, list):
-            raise ValueError("Arquivos devem ser listas JSON")
-        if len(records) != len(embeddings):
-            raise ValueError("Tamanhos de records e embeddings não batem")
-        if embeddings and len(embeddings[0]) != Config.VECTOR_DIM:
-            raise ValueError(f"Dimensão do vetor ({len(embeddings[0])}) difere de VECTOR_DIM={Config.VECTOR_DIM}")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao ler arquivos: {e}")
-
-    points = []
-    for rec, vec in zip(records, embeddings):
-        points.append(
-            PointStruct(
-                id=str(uuid4()),
-                vector=list(vec),
-                payload={"record": rec, "source": records_file.filename}
             )
         )
     try:

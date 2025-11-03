@@ -12,7 +12,7 @@ import uvicorn
 app = FastAPI()
 
 class Config:
-    load_dotenv()  # Load environment variables from a .env file
+    load_dotenv()
     API_KEY = os.getenv("OPENAI_API_KEY")
     MODEL_NAME = "gpt-4o-mini"
     TEMPERATURE = 0.9
@@ -33,7 +33,6 @@ else:
     raise ValueError(f"Tipo de embedding '{Config.EMBEDDING_TYPE}' não suportado.")
 
 def _generate_embeddings_from_records(records: List[dict]) -> List[List[float]]:
-    # 1 texto por registro -> 1 embedding por registro
     texts = [" ".join(f"{key}: {value}" for key, value in record.items()) for record in records]
     embedding_result = embeddings.embed_documents(texts)
     return embedding_result
@@ -43,25 +42,21 @@ def process_single_json_file(json_path: str):
     Processa um único arquivo JSON e salva os embeddings
     dentro do diretório correspondente em 'processed_data/<arquivo_sem_extensão>/'.
     """
-    # Diretório dinâmico baseado no nome do arquivo
     file_name = os.path.basename(json_path)
     output_dir = os.path.join(Config.BASE_OUTPUT_DIR)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Lê o conteúdo do JSON
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     if not isinstance(data, list):
         raise ValueError(f"O JSON '{json_path}' não contém uma lista de registros.")
 
-    # Gera os embeddings
     embedding_result = _generate_embeddings_from_records(data)
 
     # Envia embeddings para o bd-vetorial
     send_embeddings_to_bd_vetorial(data, embedding_result)
 
-    # Salva o arquivo de embeddings no mesmo diretório do JSON original
     output_file = os.path.join(output_dir, file_name.replace(".json", "_embeddings.json"))
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(embedding_result, f, ensure_ascii=False, indent=4)
@@ -89,7 +84,6 @@ def embed_query(text: str) -> List[float]:
     """
     Gera embedding para uma única pergunta.
     """
-    # Usa o mesmo objeto 'embeddings' já instanciado acima
     return embeddings.embed_query(text)
 
 def search_in_bd_vetorial(query_vector: List[float], top_k: int = 5, filters: Optional[Dict[str, Any]] = None):
@@ -116,7 +110,7 @@ def generate_custom_prompt_from_hits(hits: List[dict], query: str) -> str:
     chunks = []
     for h in hits:
         payload = h.get("payload", {})
-        record = payload.get("record", payload)  # fallback
+        record = payload.get("record", payload) 
         chunks.append(f"{json.dumps(record, ensure_ascii=False)}")
     sorce_knowledge = "\n".join(chunks)
 
@@ -175,7 +169,6 @@ async def upload_json(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".json"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .json")
 
-    # Caminho temporário (pode ser dentro de processed_data)
     os.makedirs("temp", exist_ok=True)
     temp_path = os.path.join("temp", file.filename)
 
@@ -192,7 +185,6 @@ async def upload_json(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar embeddings: {e}")
     finally:
-        # Remove o arquivo temporário
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
@@ -240,18 +232,12 @@ def chat(string: str):
     try:
         query = string
 
-        # 1) embedding da pergunta
         q_vec = embed_query(query)
-
-        # 2) busca semântica no bd-vetorial
-        #    (se quiser filtros, passe um dict: {"status": "ativo"} que vira payload.record.status no bd-vetorial)
         search_res = search_in_bd_vetorial(q_vec, top_k=5, filters=None)
 
-        # 3) montar prompt aumentado
         hits = search_res.get("results", [])
         prompt = generate_custom_prompt_from_hits(hits, query)
 
-        # 4) chamar LLM
         chat = ChatOpenAI(
             model=Config.MODEL_NAME,
             temperature=Config.TEMPERATURE,

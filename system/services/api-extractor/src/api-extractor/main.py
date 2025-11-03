@@ -15,7 +15,6 @@ API_LLM_URL = os.getenv("API_LLM_URL", "http://api-llm:8002/upload_json")
 
 def process_ods_to_json_by_interval(file_path, output_dir):
     try:
-        # Lê todas as planilhas do arquivo .ods
         sheets = pd.read_excel(file_path, sheet_name=None, engine="odf")
 
         for sheet_name, data in sheets.items():
@@ -26,7 +25,7 @@ def process_ods_to_json_by_interval(file_path, output_dir):
             data = data.fillna("")
 
             # Garantir que a coluna de data esteja no formato datetime
-            data.columns = data.columns.str.lower()  # Convert columns to lowercase
+            data.columns = data.columns.str.lower()
             if 'data' in data.columns and 'hora' in data.columns:
                 data['data'] = pd.to_datetime(data['data'], errors='coerce').dt.date
                 data['hora'] = pd.to_datetime(data['hora'], format='%H:%M:%S', errors='coerce').dt.time
@@ -77,22 +76,16 @@ def process_ods_to_json_by_interval(file_path, output_dir):
 
 @app.post("/process_ods")
 async def process_ods(file: UploadFile = File(...)):
-    # Criar diretório temporário
     os.makedirs("temp", exist_ok=True)
     temp_path = f"temp/{file.filename}"
 
-    # Salvar o arquivo enviado em disco
     with open(temp_path, "wb") as buffer:
         buffer.write(await file.read())
 
-    # Diretório de saída
     output_dir = os.path.join("processed_data", os.path.splitext(file.filename)[0])
     os.makedirs(output_dir, exist_ok=True)
 
     process_ods_to_json_by_interval(temp_path, output_dir)
-
-    # api_destino = "http://api-llm:8002/upload_json"  # Use o nome do serviço do Docker
-    api_destino = API_LLM_URL
 
     for root, _, files in os.walk(output_dir):
         for filename in files:
@@ -102,7 +95,6 @@ async def process_ods(file: UploadFile = File(...)):
                     response = requests.post(API_LLM_URL, files={"file": (filename, f, "application/json")})
                     print(f"Enviado {filename} -> {response.status_code}")
 
-    # (Opcional) Remover arquivo temporário
     os.remove(temp_path)
 
     return {"message": "Processamento concluído com sucesso!"}

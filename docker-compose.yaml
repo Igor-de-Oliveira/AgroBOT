@@ -20,6 +20,8 @@ services:
     container_name: api-llm
     env_file:
       - ./system/.env
+    depends_on:
+      - bd-vetorial
     environment:
       TZ: "America/Sao_Paulo"
     ports:
@@ -59,6 +61,40 @@ services:
     restart: always
     networks:
       - app-network
+
+  bd-vetorial:
+    build: ./system/services/bd-vetorial
+    container_name: bd-vetorial
+    env_file:
+      - ./system/.env
+    depends_on:
+      qdrant:
+        condition: service_started
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "8005:8005"
+    restart: always
+    networks:
+      - app-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: always
+    networks:
+      - app-network
+
+volumes:
+  qdrant_storage:
+    driver: local
 
 networks:
   app-network:

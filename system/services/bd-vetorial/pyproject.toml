@@ -1,0 +1,15 @@
+[project]
+name = "bd-vetorial"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.12.2"
+dependencies = [
+    "dotenv>=0.9.9",
+    "fastapi>=0.121.0",
+    "pydantic>=2.12.3",
+    "python-multipart>=0.0.20",
+    "qdrant-client>=1.15.1",
+    "typing>=3.10.0.0",
+    "uvicorn>=0.38.0",
+]

@@ -79,10 +79,6 @@ def generate_custom_prompt(qdrant, query):
                     """
     return augment_prompt
 
-dataset = "prepare_dataset_from_json(output_dir)"
-if dataset is not None:
-    qdrant = "load_documents_to_qdrant(dataset, pdf_dir)"
-
 @app.get("/chat")
 def chat(string: str):
     """

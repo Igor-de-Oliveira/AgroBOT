@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File
 import uvicorn
 import os
@@ -8,6 +9,9 @@ import requests
 from datetime import time
 
 app = FastAPI()
+
+
+API_LLM_URL = os.getenv("API_LLM_URL", "http://api-llm:8002/upload_json")
 
 def process_ods_to_json_by_interval(file_path, output_dir):
     try:
@@ -87,14 +91,15 @@ async def process_ods(file: UploadFile = File(...)):
 
     process_ods_to_json_by_interval(temp_path, output_dir)
 
-    api_destino = "http://api-llm:8002/upload_json"  # Use o nome do serviço do Docker
+    # api_destino = "http://api-llm:8002/upload_json"  # Use o nome do serviço do Docker
+    api_destino = API_LLM_URL
 
     for root, _, files in os.walk(output_dir):
         for filename in files:
             if filename.endswith(".json"):
                 file_path = os.path.join(root, filename)
                 with open(file_path, "rb") as f:
-                    response = requests.post(api_destino, files={"file": (filename, f, "application/json")})
+                    response = requests.post(API_LLM_URL, files={"file": (filename, f, "application/json")})
                     print(f"Enviado {filename} -> {response.status_code}")
 
     # (Opcional) Remover arquivo temporário

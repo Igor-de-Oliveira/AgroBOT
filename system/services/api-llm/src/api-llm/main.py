@@ -5,6 +5,7 @@ from typing import List
 import glob
 import json
 import os
+import requests
 import uvicorn
 
 app = FastAPI()
@@ -20,6 +21,7 @@ class Config:
     EMBEDDING_TYPE = os.getenv("EMBEDDING_TYPE", "openai")
 
     BASE_OUTPUT_DIR = "./processed_data"
+    BD_VETORIAL_URL = os.getenv("BD_VETORIAL_URL", "http://localhost:8005")
 
 if Config.EMBEDDING_TYPE == "openai":
     embeddings = OpenAIEmbeddings(
@@ -30,12 +32,10 @@ else:
     raise ValueError(f"Tipo de embedding '{Config.EMBEDDING_TYPE}' não suportado.")
 
 def _generate_embeddings_from_records(records: List[dict]) -> List[List[float]]:
-    combined_text = "\n".join(
-        " ".join(f"{key}: {value}" for key, value in record.items()) for record in records
-    )
-    embedding_result = embeddings.embed_documents([combined_text])
+    # 1 texto por registro -> 1 embedding por registro
+    texts = [" ".join(f"{key}: {value}" for key, value in record.items()) for record in records]
+    embedding_result = embeddings.embed_documents(texts)
     return embedding_result
-
 
 def process_single_json_file(json_path: str):
     """
@@ -57,6 +57,9 @@ def process_single_json_file(json_path: str):
     # Gera os embeddings
     embedding_result = _generate_embeddings_from_records(data)
 
+    # Envia embeddings para o bd-vetorial
+    send_embeddings_to_bd_vetorial(data, embedding_result)
+
     # Salva o arquivo de embeddings no mesmo diretório do JSON original
     output_file = os.path.join(output_dir, file_name.replace(".json", "_embeddings.json"))
     with open(output_file, "w", encoding="utf-8") as f:
@@ -64,6 +67,22 @@ def process_single_json_file(json_path: str):
 
     print(f"Embeddings para '{json_path}' salvos em '{output_file}'")
     return output_file
+
+def send_embeddings_to_bd_vetorial(records: List[dict], embeddings: List[List[float]]):
+    """
+    Envia os embeddings gerados para o serviço bd-vetorial.
+    """
+    url = f"{Config.BD_VETORIAL_URL}/upload_pack"
+    payload = {
+        "records": records,
+        "embeddings": embeddings
+    }
+    headers = {"Content-Type": "application/json"}
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao enviar embeddings para o bd-vetorial: {e}")
 
 
 @app.post("/upload_json")

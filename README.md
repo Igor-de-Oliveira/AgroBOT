@@ -34,29 +34,29 @@ Ele permite a interação via **chat (FastAPI)** e **bot do Telegram** e utiliza
 
 ### **Backend**
 - **Python 3.12**
-  - Framework: **FastAPI** — criação de APIs REST.
-  - Servidor: **Uvicorn** — execução assíncrona de aplicações ASGI.
+  - Framework: **FastAPI** criação de APIs REST.
+  - Servidor: **Uvicorn** execução assíncrona de aplicações ASGI.
 
 ### **Bibliotecas Principais**
-- **dotenv** — gerenciamento de variáveis de ambiente.
-- **pandas**, **numpy** — processamento e análise de dados.
-- **requests** — integração HTTP entre serviços.
-- **python-multipart** — manipulação de arquivos.
-- **python-telegram-bot** — automação e comunicação com o Telegram.
-- **langchain-core**, **langchain-openai**, **langchain-community** — pipeline de IA e RAG.
-- **fastapi**, **uvicorn** — estrutura e execução das APIs.
+- **dotenv** gerenciamento de variáveis de ambiente.
+- **pandas**, **numpy** processamento e análise de dados.
+- **requests** integração HTTP entre serviços.
+- **python-multipart** manipulação de arquivos.
+- **python-telegram-bot** automação e comunicação com o Telegram.
+- **langchain-core**, **langchain-openai**, **langchain-community** pipeline de IA e RAG.
+- **fastapi**, **uvicorn** estrutura e execução das APIs.
 
 ### **Banco de Dados**
-- **Qdrant** — banco vetorial para armazenamento de embeddings e buscas semânticas.
+- **Qdrant** banco vetorial para armazenamento de embeddings e buscas semânticas.
 
 ### **Inteligência Artificial**
-- **LLMs (Large Language Models)** — geração de respostas baseadas em contexto.  
-- **RAG (Retrieval-Augmented Generation)** — busca vetorial combinada com LLMs.  
-- **LangChain Framework** — integração modular entre modelos, prompts e vetores.
+- **LLMs (Large Language Models)** geração de respostas baseadas em contexto.  
+- **RAG (Retrieval-Augmented Generation)** busca vetorial combinada com LLMs.  
+- **LangChain Framework** integração modular entre modelos, prompts e vetores.
 
 ### **Containerização e Orquestração**
-- **Docker** — empacotamento e isolamento dos serviços.  
-- **Docker Compose** — orquestração e rede interna entre os contêineres.
+- **Docker** empacotamento e isolamento dos serviços.  
+- **Docker Compose** orquestração e rede interna entre os contêineres.
 
 ---
 

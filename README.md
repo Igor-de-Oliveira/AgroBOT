@@ -63,12 +63,13 @@ Ele permite a interação via **chat (FastAPI)** e **bot do Telegram** e utiliza
 ## Descrição dos Arquivos
 
 | Caminho | Função |
-|---------|--------|
-| [`/system/services/api-chat/src/api-chat/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/tree/main/system/services/api-chat/src/api-chat) | Serviço web com FastAPI que interage com modelos de linguagem para responder dúvidas sobre cultivo hidropônico. |
-| [`/system/services/api-extractor/src/api-extractor/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/tree/main/system/services/api-extractor/src/api-extractor) | Processa planilhas ODS e converte dados em JSON segmentado por intervalos de tempo. |
-| [`/system/services/api-telegram/src/api-telegram/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/tree/main/system/services/api-telegram/src/api-telegram) | Configura um bot do Telegram que interage com usuários e repassa mensagens à API de chat. |
-| [`/system/services/api-llm/src/api-llm/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/tree/main/system/services/api-llm/src/api-llm) | Gera embeddings e integra com modelos da OpenAI para consultas semânticas. |
-| [`docker-compose.yaml`](https://github.com/Igor-de-Oliveira/AgroBOT/blob/main/docker-compose.yaml) | Define e conecta os serviços Docker para execução integrada. |
+|---|---|
+| [`/system/services/api-extractor/src/api-extractor/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/blob/main/system/services/api-extractor/src/api-extractor/main.py) | Processa planilhas ODS e converte os dados em JSON segmentado por intervalos de tempo. |
+| [`/system/services/api-telegram/src/api-telegram/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/blob/main/system/services/api-telegram/src/api-telegram/main.py) | Configura o bot do Telegram que interage com usuários e encaminha mensagens para a API de chat. |
+| [`/system/services/api-llm/src/api-llm/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/blob/main/system/services/api-llm/src/api-llm/main.py) | Gera embeddings e integra com modelos (OpenAI) para consultas semânticas via RAG. |
+| [`/system/services/api-llm/src/bd-vetorial/main.py`](https://github.com/Igor-de-Oliveira/AgroBOT/blob/main/system/services/api-llm/src/bd-vetorial/main.py) | Serviço de banco vetorial (Qdrant) para armazenar embeddings e suportar buscas do RAG. |
+| [`/docker-compose.yaml`](https://github.com/Igor-de-Oliveira/AgroBOT/blob/main/docker-compose.yaml) | Define e conecta os serviços Docker para execução integrada. |
+
 
 ---
 

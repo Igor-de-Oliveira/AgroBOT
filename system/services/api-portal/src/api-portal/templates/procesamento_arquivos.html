@@ -46,23 +46,72 @@
         }
     </style>
 </head>
+
 <body>
 
     <nav class="navbar">
         <!-- Logo clicável -->
-        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;" /> </a>
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"/> </a>
 
         <div class="nav-links">
-            <a href="/process_ods">Processar arquivos</a>
+            <a href="/user">Usuário</a>
+            <a href="/process_ods">Arquivos</a>
             <a href="tela2.html">Tela 2</a>
-            <a href="tela3.html">Tela 3</a>
+            <a href="tela3.html">Chat web</a>
         </div>
     </nav>
 
     <div class="content">
-        <h1>Bem-vindo à Página de Processamento de Arquivos</h1>
-        <p>Use a navbar acima para navegar.</p>
+        <h1>Bem-vindo à Página de Arquivos</h1>
+
+        <label for="file-upload">Selecione um arquivo para processar:</label>
+        <input type="file" id="file-upload" name="file-upload" accept=".ods,.xlsx,.csv">
+        <br>
+
+        <button href="/" id="process-button">Processar</button>
+
     </div>
+
+
+<script>
+document.getElementById("process-button").addEventListener("click", async () => {
+
+    const input = document.getElementById("file-upload");
+    const file = input.files[0];
+
+    if (!file) {
+        alert("Selecione um arquivo primeiro!");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch("http://localhost:8001/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error("Erro ao enviar arquivo");
+        }
+
+        const data = await response.json();
+        console.log(data);
+        alert("Arquivo enviado com sucesso!");
+
+        // 🔥 LIMPA O CAMPO APÓS ENVIO
+        input.value = "";
+
+    } catch (error) {
+        console.error(error);
+        alert("Erro ao enviar arquivo.");
+    }
+
+});
+</script>
+
 
 </body>
 </html>

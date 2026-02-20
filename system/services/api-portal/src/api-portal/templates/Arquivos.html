@@ -2,11 +2,21 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Portal AgroBot</title>
+    <title>Processar arquivos</title>
     <style>
         body {
             margin: 0;
             font-family: Arial, sans-serif;
+        }
+
+        .adicionar-arquivo{
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
 
         .navbar {
@@ -14,6 +24,10 @@
             justify-content: space-between;
             align-items: center;
             background-color: #2c3e50;
+            padding: 0 20px;
+        }
+
+        .content {
             padding: 0 20px;
         }
 
@@ -46,11 +60,11 @@
         }
     </style>
 </head>
+
 <body>
 
     <nav class="navbar">
-        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;" /> </a>
-        
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"/> </a>
 
         <div class="nav-links">
             <a href="/user">Usuário</a>
@@ -61,8 +75,13 @@
     </nav>
 
     <div class="content">
-        <h1>Bem-vindo à Página Principal</h1>
-        <p>Use a navbar acima para navegar.</p>
+        <h1>Bem-vindo à Página de Arquivos</h1>
+
+        <button id="adicionar-arquivo" onclick="window.location.href='/procesamento_arquivos'"
+            style="background-color: #2c3e50; color: white;">
+            + 
+        </button>
+
     </div>
 
 </body>

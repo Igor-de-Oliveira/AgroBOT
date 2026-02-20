@@ -17,8 +17,12 @@ async def tela(request: Request):
 app.mount("/static", StaticFiles(directory=os.path.join(dirname, "static")), name="static")
 
 
-@app.get("/process_ods", response_class=HTMLResponse)
+@app.get("/arquivos", response_class=HTMLResponse)
 async def process_ods(request: Request):
+    return templates.TemplateResponse("Arquivos.html", {"request": request})
+
+@app.get("/procesamento_arquivos", response_class=HTMLResponse)
+async def processamento_arquivos(request: Request):
     return templates.TemplateResponse("procesamento_arquivos.html", {"request": request})
 
 def main():

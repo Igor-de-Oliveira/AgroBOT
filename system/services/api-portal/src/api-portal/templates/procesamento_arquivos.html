@@ -17,6 +17,10 @@
             padding: 0 20px;
         }
 
+        .content {
+            padding: 0 20px;
+        }
+
         .logo {
             color: white;
             text-decoration: none;
@@ -87,7 +91,7 @@ document.getElementById("process-button").addEventListener("click", async () => 
     formData.append("file", file);
 
     try {
-        const response = await fetch("http://localhost:8001/upload", {
+        const response = await fetch("http://localhost:8001/process_ods", {
             method: "POST",
             body: formData
         });

@@ -11,6 +11,16 @@ from datetime import time
 app = FastAPI()
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8003"],  # frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 API_LLM_URL = os.getenv("API_LLM_URL", "http://api-llm:8002/upload_json")
 
 def process_ods_to_json_by_interval(file_path, output_dir):
@@ -76,28 +86,36 @@ def process_ods_to_json_by_interval(file_path, output_dir):
 
 @app.post("/process_ods")
 async def process_ods(file: UploadFile = File(...)):
-    os.makedirs("temp", exist_ok=True)
-    temp_path = f"temp/{file.filename}"
+    try:
+        os.makedirs("temp", exist_ok=True)
+        temp_path = f"temp/{file.filename}"
 
-    with open(temp_path, "wb") as buffer:
-        buffer.write(await file.read())
+        with open(temp_path, "wb") as buffer:
+            buffer.write(await file.read())
 
-    output_dir = os.path.join("processed_data", os.path.splitext(file.filename)[0])
-    os.makedirs(output_dir, exist_ok=True)
+        output_dir = os.path.join("processed_data", os.path.splitext(file.filename)[0])
+        os.makedirs(output_dir, exist_ok=True)
 
-    process_ods_to_json_by_interval(temp_path, output_dir)
+        process_ods_to_json_by_interval(temp_path, output_dir)
 
-    for root, _, files in os.walk(output_dir):
-        for filename in files:
-            if filename.endswith(".json"):
-                file_path = os.path.join(root, filename)
-                with open(file_path, "rb") as f:
-                    response = requests.post(API_LLM_URL, files={"file": (filename, f, "application/json")})
-                    print(f"Enviado {filename} -> {response.status_code}")
+        for root, _, files in os.walk(output_dir):
+            for filename in files:
+                if filename.endswith(".json"):
+                    file_path = os.path.join(root, filename)
+                    with open(file_path, "rb") as f:
+                        response = requests.post(
+                            API_LLM_URL,
+                            files={"file": (filename, f, "application/json")}
+                        )
+                        print(f"Enviado {filename} -> {response.status_code}")
 
-    os.remove(temp_path)
+        os.remove(temp_path)
 
-    return {"message": "Processamento concluído com sucesso!"}
+        return {"message": "Processamento concluído com sucesso!"}
+
+    except Exception as e:
+        print("ERRO INTERNO:", e)
+        return {"error": str(e)}
 
 def main():
     """Inicia a API utilizando Uvicorn."""

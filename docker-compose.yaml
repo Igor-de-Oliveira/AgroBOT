@@ -46,6 +46,22 @@ services:
     networks:
       - app-network
 
+  api-portal:
+    build: ./system/services/api-portal
+    container_name: api-portal
+    env_file:
+      - ./system/.env
+    depends_on:
+      api-llm:
+        condition: service_started
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "8003:8003"
+    restart: always
+    networks:
+      - app-network
+
   bd-vetorial:
     build: ./system/services/bd-vetorial
     container_name: bd-vetorial
@@ -76,8 +92,29 @@ services:
     networks:
       - app-network
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      TZ: "America/Sao_Paulo"
+      MINIO_ROOT_USER: admin1234
+      MINIO_ROOT_PASSWORD: admin1234
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    restart: always
+    networks:
+      - app-network
+
+
 volumes:
   qdrant_storage:
+    driver: local
+
+  minio_data:
     driver: local
 
 networks:

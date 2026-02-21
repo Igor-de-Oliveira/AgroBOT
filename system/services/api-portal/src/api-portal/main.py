@@ -7,6 +7,16 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8003"],  # frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 dirname = os.path.dirname(__file__)
 templates = Jinja2Templates(directory=os.path.join(dirname, "templates"))
 

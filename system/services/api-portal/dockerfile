@@ -36,9 +36,9 @@ USER appuser
 # Timezone (opcional, Brasil)
 ENV TZ=America/Sao_Paulo
 
-EXPOSE 8005
+EXPOSE 8002
 # Comando de execução:
 # Use "uv run" para garantir o mesmo ambiente
 # Troque o caminho para o seu main se necessário
-CMD ["uv", "run", "uvicorn", "src.bd-vetorial.main:app", "--host", "0.0.0.0", "--port", "8005"]
+CMD ["uv", "run", "uvicorn", "src.api-portal.main:app", "--host", "0.0.0.0", "--port", "8003"]
 

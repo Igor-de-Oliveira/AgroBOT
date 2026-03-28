@@ -54,10 +54,35 @@ services:
     depends_on:
       api-llm:
         condition: service_started
+      postgres-arquivos:
+        condition: service_healthy
+      api-extractor:
+        condition: service_started
     environment:
       TZ: "America/Sao_Paulo"
     ports:
       - "8003:8003"
+    restart: always
+    networks:
+      - app-network
+
+  postgres-arquivos:
+    image: postgres:17
+    container_name: postgres-arquivos
+    environment:
+      TZ: "America/Sao_Paulo"
+      POSTGRES_DB: ${POSTGRES_DB:-agrobot}
+      POSTGRES_USER: ${POSTGRES_USER:-agrobot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agrobot}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_arquivos_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agrobot} -d ${POSTGRES_DB:-agrobot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
     networks:
       - app-network
@@ -113,6 +138,8 @@ volumes:
   qdrant_storage:
     driver: local
   minio_data:
+    driver: local
+  postgres_arquivos_data:
     driver: local
 
 networks:

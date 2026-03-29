@@ -1,125 +1,105 @@
-from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File
-import uvicorn
 import os
-import pandas as pd
-import json
-from odf import *
-import requests
 from datetime import time
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+import uvicorn
+from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8003"],  # frontend
+    allow_origins=["http://localhost:8003"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-API_LLM_URL = os.getenv("API_LLM_URL", "http://api-llm:8002/upload_json")
 
-def process_ods_to_json_by_interval(file_path, output_dir):
-    try:
-        sheets = pd.read_excel(file_path, sheet_name=None, engine="odf")
+def process_ods_to_json_by_interval(file_path: str) -> list[dict[str, Any]]:
+    generated_artifacts: list[dict[str, Any]] = []
+    sheets = pd.read_excel(file_path, sheet_name=None, engine="odf")
 
-        for sheet_name, data in sheets.items():
-            # Remover linhas e colunas completamente vazias
-            data = data.dropna(how='all').dropna(axis=1, how='all')
+    for sheet_name, data in sheets.items():
+        data = data.dropna(how="all").dropna(axis=1, how="all")
+        data = data.fillna("")
 
-            # Preencher NaN com valores padrão, se necessário
-            data = data.fillna("")
+        data.columns = data.columns.str.lower()
+        if "data" not in data.columns or "hora" not in data.columns:
+            continue
 
-            # Garantir que a coluna de data esteja no formato datetime
-            data.columns = data.columns.str.lower()
-            if 'data' in data.columns and 'hora' in data.columns:
-                data['data'] = pd.to_datetime(data['data'], errors='coerce').dt.date
-                data['hora'] = pd.to_datetime(data['hora'], format='%H:%M:%S', errors='coerce').dt.time
+        data["data"] = pd.to_datetime(data["data"], errors="coerce").dt.date
+        data["hora"] = pd.to_datetime(data["hora"], format="%H:%M:%S", errors="coerce").dt.time
 
-                # Criar uma coluna para identificar os intervalos de 12 horas
-                def classify_interval(row):
-                    if pd.isna(row['hora']):
-                        return None
-                    hora = row['hora']
-                    if time(8, 0) <= hora < time(20, 0):
-                        return f"{row['data']} 08:00-20:00"
-                    else:
-                        # Para o intervalo das 20:00 às 08:00, associar ao dia seguinte
-                        next_date = row['data'] if hora < time(8, 0) else row['data'] + pd.Timedelta(days=1)
-                        return f"{next_date} 20:00-08:00"
+        def classify_interval(row):
+            if pd.isna(row["hora"]):
+                return None
+            hora = row["hora"]
+            if time(8, 0) <= hora < time(20, 0):
+                return f"{row['data']} 08:00-20:00"
+            next_date = row["data"] if hora < time(8, 0) else row["data"] + pd.Timedelta(days=1)
+            return f"{next_date} 20:00-08:00"
 
-                data['intervalo'] = data.apply(classify_interval, axis=1)
+        data["intervalo"] = data.apply(classify_interval, axis=1)
+        unique_intervals = data["intervalo"].dropna().unique()
 
-                # Filtrar dados por cada intervalo único
-                unique_intervals = data['intervalo'].dropna().unique()
+        for interval in unique_intervals:
+            interval_data = data[data["intervalo"] == interval]
+            interval_records = interval_data.drop(columns=["intervalo"]).to_dict(orient="records")
 
-                for interval in unique_intervals:
-                    interval_data = data[data['intervalo'] == interval]
-                    interval_data_dict = interval_data.drop(columns=['intervalo']).to_dict(orient="records")
+            for record in interval_records:
+                if hasattr(record.get("data"), "strftime"):
+                    record["data"] = record["data"].strftime("%Y-%m-%d")
+                if isinstance(record.get("hora"), time):
+                    record["hora"] = record["hora"].strftime("%H:%M:%S")
 
-                    # Convert date and time objects to strings
-                    for record in interval_data_dict:
-                        record['data'] = record['data'].strftime('%Y-%m-%d')
-                        if 'hora' in record and isinstance(record['hora'], time):
-                            record['hora'] = record['hora'].strftime('%H:%M:%S')
+            interval_str = interval.replace(":", "-").replace(" ", "_")
+            artifact_name = f"{sheet_name}_{interval_str}.json"
+            generated_artifacts.append(
+                {
+                    "sheet_name": sheet_name,
+                    "interval": interval,
+                    "artifact_name": artifact_name,
+                    "records": interval_records,
+                }
+            )
 
-                    # Gerar nome do arquivo JSON para o intervalo
-                    interval_str = interval.replace(":", "-").replace(" ", "_")
-                    output_file = f"{output_dir}/{sheet_name}_{interval_str}.json"
+    return generated_artifacts
 
-                    # Certificar-se de que o diretório de saída existe
-                    os.makedirs(output_dir, exist_ok=True)
-
-                    # Salvar os dados do intervalo como JSON
-                    with open(output_file, "w", encoding="utf-8") as json_file:
-                        json.dump(interval_data_dict, json_file, ensure_ascii=False, indent=4)
-            else:
-                print(f"A planilha '{sheet_name}' não contém as colunas 'data' e 'hora'.")
-
-        print(f"Dados processados e salvos no diretório: {output_dir}")
-    except Exception as e:
-        print(f"Erro ao processar o arquivo: {e}")
 
 @app.post("/process_ods")
 async def process_ods(file: UploadFile = File(...)):
+    temp_path = ""
     try:
         os.makedirs("temp", exist_ok=True)
-        temp_path = f"temp/{file.filename}"
+        safe_filename = Path(file.filename or "arquivo.ods").name
+        temp_path = f"temp/{safe_filename}"
 
         with open(temp_path, "wb") as buffer:
             buffer.write(await file.read())
 
-        output_dir = os.path.join("processed_data", os.path.splitext(file.filename)[0])
-        os.makedirs(output_dir, exist_ok=True)
+        artifacts = process_ods_to_json_by_interval(temp_path)
+        return {
+            "message": "Processamento concluido com sucesso.",
+            "source_file": safe_filename,
+            "artifacts_count": len(artifacts),
+            "artifacts": artifacts,
+        }
+    except Exception as exc:
+        print("ERRO INTERNO:", exc)
+        return {"error": str(exc)}
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
-        process_ods_to_json_by_interval(temp_path, output_dir)
-
-        for root, _, files in os.walk(output_dir):
-            for filename in files:
-                if filename.endswith(".json"):
-                    file_path = os.path.join(root, filename)
-                    with open(file_path, "rb") as f:
-                        response = requests.post(
-                            API_LLM_URL,
-                            files={"file": (filename, f, "application/json")}
-                        )
-                        print(f"Enviado {filename} -> {response.status_code}")
-
-        os.remove(temp_path)
-
-        return {"message": "Processamento concluído com sucesso!"}
-
-    except Exception as e:
-        print("ERRO INTERNO:", e)
-        return {"error": str(e)}
 
 def main():
     """Inicia a API utilizando Uvicorn."""
     uvicorn.run(app, host="0.0.0.0", port=8001)
+
 
 if __name__ == "__main__":
     main()

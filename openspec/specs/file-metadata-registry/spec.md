@@ -4,11 +4,12 @@
 TBD - created by archiving change bd-arquivos. Update Purpose after archive.
 ## Requirements
 ### Requirement: Persist file metadata for uploaded files
-The system SHALL persist metadata for every file received for processing in a relational table containing, at minimum, ID, file name, file hash, created_at, and updated_at.
+The system SHALL persist metadata for every file received for processing, including AWS link fields used to locate the binary in S3.
 
-#### Scenario: New file is registered
+#### Scenario: New uploaded file is registered with S3 link
 - **WHEN** a user uploads a new file for processing
-- **THEN** the system SHALL calculate the file hash and create a record with unique ID, file name, file hash, created_at, and updated_at
+- **THEN** the system SHALL store the file in S3 under `Arquivos/`
+- **AND** the system SHALL persist metadata including `link_arquivo_AWS` in the relational database
 
 ### Requirement: Use PostgreSQL 17 in Docker for metadata persistence
 The metadata persistence layer SHALL use PostgreSQL version 17 running in Docker as the standard relational database for this capability.
@@ -18,11 +19,13 @@ The metadata persistence layer SHALL use PostgreSQL version 17 running in Docker
 - **THEN** a Docker PostgreSQL 17 instance SHALL be available for the service responsible for upload and processing
 
 ### Requirement: Update metadata when file content changes
-The system SHALL update file metadata when a new upload represents content changes, reflecting the new hash and updated_at timestamp.
+The system SHALL update metadata when the same logical file is uploaded again with changed content, replacing the S3 object and refreshing persisted links.
 
-#### Scenario: Re-upload with changed content
-- **WHEN** a previously known file is uploaded again with a different hash
-- **THEN** the system SHALL update the stored hash and updated_at for the corresponding record
+#### Scenario: Re-upload replaces existing source file in S3
+- **WHEN** a previously known logical file is uploaded again
+- **AND** the file must be replaced according to overwrite policy
+- **THEN** the system SHALL overwrite the object in `Arquivos/`
+- **AND** the system SHALL update `link_arquivo_AWS` and modification metadata in the database
 
 ### Requirement: Persist metadata before confirming accepted upload
 The upload flow SHALL only confirm accepted processing after metadata persistence succeeds.
@@ -30,4 +33,41 @@ The upload flow SHALL only confirm accepted processing after metadata persistenc
 #### Scenario: Upload success implies persisted metadata
 - **WHEN** the service returns successful upload acceptance
 - **THEN** the metadata record for the uploaded file SHALL already be persisted in PostgreSQL
+
+### Requirement: Validate existence in database and AWS before create or overwrite
+The system SHALL verify file existence in both relational metadata and AWS S3 before deciding whether to create a new object or overwrite an existing one.
+
+#### Scenario: File exists in database and S3
+- **WHEN** the upload flow resolves a logical file key that already exists in the database
+- **AND** the corresponding object exists in S3
+- **THEN** the system SHALL apply overwrite behavior instead of creating a duplicate record
+
+#### Scenario: File exists in database but not in S3
+- **WHEN** metadata exists but S3 object is missing
+- **THEN** the system SHALL recreate the object in S3 and reconcile metadata with the new valid link
+
+### Requirement: Return extractor JSON to portal and persist in S3 Json folder
+The `api-extractor` SHALL return generated JSON payloads to `portal-agrobot`, and the portal SHALL persist those JSON artifacts in AWS S3 under `Json/`.
+
+#### Scenario: Extractor returns generated JSON
+- **WHEN** `api-extractor` finishes processing an uploaded file
+- **THEN** it SHALL return the generated JSON to `portal-agrobot`
+- **AND** `portal-agrobot` SHALL store the JSON in S3 under `Json/`
+- **AND** the JSON AWS link SHALL be persisted in the database
+
+### Requirement: Replace existing JSON artifact for same logical file
+The system SHALL overwrite JSON artifact objects in S3 when the same logical file is reprocessed.
+
+#### Scenario: Reprocessing same logical file updates Json object
+- **WHEN** `portal-agrobot` receives a new JSON output for a previously processed logical file
+- **THEN** the existing object in `Json/` SHALL be replaced
+- **AND** the persisted JSON link metadata SHALL be updated to the latest object reference
+
+### Requirement: Stop direct extractor-to-llm file forwarding
+The extraction pipeline SHALL no longer forward uploaded files directly from `api-extractor` to `api-llm`.
+
+#### Scenario: Processing completes without direct file forwarding
+- **WHEN** `api-extractor` finishes file processing
+- **THEN** it SHALL not send the file directly to `api-llm`
+- **AND** it SHALL return processing output to `portal-agrobot` for next-step orchestration
 

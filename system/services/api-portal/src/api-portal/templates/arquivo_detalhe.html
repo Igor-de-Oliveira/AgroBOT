@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do arquivo</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fb;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2c3e50;
+            padding: 0 20px;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+
+        .nav-links a:hover {
+            background-color: #34495e;
+        }
+
+        .container {
+            max-width: 760px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            row-gap: 10px;
+            column-gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .meta-label {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .status {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: #e9f2ff;
+            color: #1f4e85;
+        }
+
+        .status.error {
+            display: block;
+            background: #ffe9e9;
+            color: #9d1f1f;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border-radius: 6px;
+            border: 1px solid #cad4e0;
+            background: #ffffff;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
+        <div class="nav-links">
+            <a href="/user">Usuário</a>
+            <a href="/arquivos">Arquivos</a>
+            <a href="/procesamento_arquivos">Processamento</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Detalhes do arquivo</h1>
+        <div id="status" class="status"></div>
+        <div class="card">
+            <div class="meta-grid">
+                <div class="meta-label">ID</div>
+                <div id="meta-id">-</div>
+                <div class="meta-label">Nome</div>
+                <div id="meta-name">-</div>
+                <div class="meta-label">Hash</div>
+                <div id="meta-hash">-</div>
+                <div class="meta-label">Criado em</div>
+                <div id="meta-created-at">-</div>
+            </div>
+            <div class="btn-row">
+                <button id="download-source">Baixar arquivo original</button>
+                <button id="download-json">Ver JSON</button>
+                <button onclick="window.location.href='/arquivos'">Voltar para listagem</button> /#/ Posto por nessecidade n vejo sendo util #/#
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const fileId = Number("{{ file_id }}");
+        let currentFile = null;
+
+        const statusEl = document.getElementById("status");
+        const idEl = document.getElementById("meta-id");
+        const nameEl = document.getElementById("meta-name");
+        const hashEl = document.getElementById("meta-hash");
+        const createdAtEl = document.getElementById("meta-created-at");
+        const downloadSourceBtn = document.getElementById("download-source");
+        const downloadJsonBtn = document.getElementById("download-json");
+
+        function setStatus(type, message) {
+            statusEl.className = "status";
+            statusEl.textContent = "";
+            if (!message) return;
+            statusEl.classList.add(type);
+            statusEl.textContent = message;
+        }
+
+        function startDownload(link, label) {
+            if (!link || typeof link !== "string") {
+                setStatus("error", `Link de ${label} ausente ou inválido.`);
+                return;
+            }
+            try {
+                const parsed = new URL(link);
+                if (!parsed.protocol.startsWith("http")) {
+                    throw new Error("Protocolo inválido");
+                }
+                window.open(link, "_blank", "noopener,noreferrer");
+            } catch (error) {
+                setStatus("error", `Link de ${label} ausente ou inválido.`);
+            }
+        }
+
+        async function loadDetail() {
+            setStatus("loading", "Carregando detalhes...");
+            try {
+                const response = await fetch(`/api/files/${fileId}`);
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao carregar detalhes.");
+                }
+
+                currentFile = payload;
+                idEl.textContent = payload.id;
+                nameEl.textContent = payload.name || "-";
+                hashEl.textContent = payload.hash || "-";
+                createdAtEl.textContent = payload.created_at
+                    ? new Date(payload.created_at).toLocaleString("pt-BR")
+                    : "-";
+                setStatus("", "");
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao buscar detalhes.");
+            }
+        }
+
+        downloadSourceBtn.addEventListener("click", () => {
+            startDownload(currentFile ? currentFile.link_arquivo_AWS : null, "arquivo original");
+        });
+
+        downloadJsonBtn.addEventListener("click", () => {
+            startDownload(currentFile ? currentFile.link_json_aws : null, "JSON");
+        });
+
+        loadDetail();
+    </script>
+</body>
+</html>

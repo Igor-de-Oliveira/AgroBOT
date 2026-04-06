@@ -65,6 +65,9 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 ### 4.6 Expansao da Plataforma
 - Evoluir o portal web (api-portal)
 - Centralizar funcionalidades de upload e observabilidade do processamento
+- Disponibilizar listagem paginada de arquivos com `page_size` 25/50/100
+- Disponibilizar tela de detalhes do arquivo com metadados e downloads
+- Permitir exclusao coordenada de artefatos (`Arquivos/`, `Json/`) e metadado relacional
 - Permitir futuras integracoes e novas features
 
 ---
@@ -78,6 +81,9 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Persistencia de metadados de arquivo (id, nome, hash, created_at, updated_at, links AWS/S3)
 - Persistencia de arquivo original em `Arquivos/` e JSON processado em `Json/`
 - Validacao de existencia em banco + S3 antes de create/overwrite
+- Listagem paginada de arquivos registrados com total de registros
+- Consulta de detalhe por arquivo com `id`, `name`, `hash`, `created_at` e links AWS
+- Exclusao completa de arquivo (S3 + banco) com retorno de falha em caso de inconsistencia
 - Consulta via chatbot
 - Arquitetura baseada em servicos independentes
 
@@ -103,6 +109,11 @@ Responsavel por:
 - Persistir metadados e links (`link_arquivo_AWS` e `link_json_aws`) no PostgreSQL
 - Encaminhar arquivo para o api-extractor e receber payload JSON processado
 - Persistir JSON retornado no S3 em `Json/`
+- Expor endpoint de listagem paginada (`page`, `page_size`) com total de registros
+- Expor endpoint de detalhe por `id`
+- Expor endpoint de exclusao coordenada entre S3 e PostgreSQL
+- Renderizar listagem web com controles de paginacao, tamanho de pagina e acoes de item
+- Renderizar pagina de detalhes com botoes de download de arquivo original e JSON
 
 ### 6.2 api-extractor
 Responsavel por:
@@ -161,6 +172,18 @@ Responsavel por:
 13. LLM consulta banco vetorial (RAG)
 14. Resposta e gerada e retornada ao usuario
 
+### 7.1 Fluxo de consulta e gestao de arquivos registrados
+
+1. Usuario abre a tela de arquivos no portal
+2. Frontend consulta `GET /api/files` com `page` e `page_size`
+3. Backend retorna itens da pagina e total de registros
+4. Usuario pode alterar `page_size` (25/50/100) e navegar entre paginas
+5. Usuario pode abrir detalhes de um item (`GET /api/files/{id}`)
+6. Portal exibe `id`, `name`, `hash`, `created_at` e disponibiliza downloads por links AWS
+7. Usuario pode excluir arquivo na listagem (`DELETE /api/files/{id}`)
+8. Backend remove objetos em `Arquivos/` e `Json/` e remove metadado no PostgreSQL
+9. Em falha parcial, backend retorna erro e nao sinaliza sucesso falso
+
 ---
 
 ## 8. Requisitos Nao Funcionais
@@ -180,6 +203,8 @@ Responsavel por:
 - Confirmacao de upload apenas apos persistencia de metadados
 - Reconciliacao automatica para divergencias entre banco e S3
 - Politica de overwrite para reprocessamento do mesmo arquivo logico
+- Regras de validacao para paginacao (`page >= 1` e `page_size` permitido)
+- Exclusao coordenada com tratamento de erro para evitar sucesso com estado inconsistente
 
 ### 8.4 Manutenibilidade
 - Codigo modular
@@ -209,6 +234,9 @@ Responsavel por:
 O sistema sera considerado bem-sucedido se:
 
 - Usuarios conseguirem enviar dados sem erros
+- Usuarios conseguirem consultar arquivos registrados com navegacao paginada
+- Usuarios conseguirem visualizar detalhes e baixar artefatos do arquivo selecionado
+- Usuarios conseguirem excluir registros com consistencia entre S3 e banco
 - Metadados de upload forem persistidos corretamente no PostgreSQL
 - Dados forem corretamente processados e indexados
 - O chatbot responder com base nos dados fornecidos

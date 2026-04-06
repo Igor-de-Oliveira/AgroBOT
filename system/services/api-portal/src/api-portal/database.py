@@ -70,3 +70,69 @@ def upsert_file_metadata(
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(query, (file_name, file_hash, link_arquivo_aws, link_json_aws))
         conn.commit()
+
+
+def list_file_metadata(page: int, page_size: int) -> tuple[list[dict[str, Any]], int]:
+    offset = (page - 1) * page_size
+    list_query = """
+    SELECT id, file_name, file_hash, created_at, link_arquivo_AWS, link_json_aws
+    FROM file_metadata
+    ORDER BY created_at DESC, id DESC
+    LIMIT %s OFFSET %s;
+    """
+    total_query = "SELECT COUNT(*) AS total FROM file_metadata;"
+
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(total_query)
+            total_row = cur.fetchone() or {"total": 0}
+            cur.execute(list_query, (page_size, offset))
+            rows = cur.fetchall()
+
+    items = [
+        {
+            "id": row["id"],
+            "name": row["file_name"],
+            "hash": row["file_hash"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "link_arquivo_AWS": row["link_arquivo_aws"],
+            "link_json_aws": row["link_json_aws"],
+        }
+        for row in rows
+    ]
+
+    return items, int(total_row["total"])
+
+
+def fetch_file_metadata_by_id(file_id: int) -> Optional[dict[str, Any]]:
+    query = """
+    SELECT id, file_name, file_hash, link_arquivo_AWS, link_json_aws, created_at
+    FROM file_metadata
+    WHERE id = %s;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query, (file_id,))
+            row = cur.fetchone()
+
+    if not row:
+        return None
+
+    return {
+        "id": row["id"],
+        "name": row["file_name"],
+        "hash": row["file_hash"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "link_arquivo_AWS": row["link_arquivo_aws"],
+        "link_json_aws": row["link_json_aws"],
+    }
+
+
+def delete_file_metadata_by_id(file_id: int) -> bool:
+    query = "DELETE FROM file_metadata WHERE id = %s;"
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (file_id,))
+            deleted = cur.rowcount > 0
+        conn.commit()
+    return deleted

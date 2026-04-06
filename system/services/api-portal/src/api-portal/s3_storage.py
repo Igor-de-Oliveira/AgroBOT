@@ -1,6 +1,6 @@
 import os
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlparse
 
 
 def get_s3_settings() -> dict[str, str]:
@@ -65,3 +65,19 @@ def upload_bytes_to_s3(
     s3_client.put_object(Bucket=bucket_name, Key=object_key, Body=body, ContentType=content_type)
     endpoint = get_s3_settings()["public_endpoint"].rstrip("/")
     return f"{endpoint}/{bucket_name}/{quote(object_key, safe='/')}"
+
+
+def extract_s3_key_from_link(link: str, bucket_name: str) -> str:
+    parsed = urlparse(link)
+    raw_path = (parsed.path or "").lstrip("/")
+    prefix = f"{bucket_name}/"
+    if not raw_path.startswith(prefix):
+        raise ValueError("Link AWS invalido para o bucket configurado.")
+    object_key = unquote(raw_path[len(prefix) :])
+    if not object_key:
+        raise ValueError("Link AWS sem chave de objeto.")
+    return object_key
+
+
+def delete_object_from_s3(s3_client: Any, bucket_name: str, object_key: str) -> None:
+    s3_client.delete_object(Bucket=bucket_name, Key=object_key)

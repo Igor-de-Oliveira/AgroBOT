@@ -71,3 +71,21 @@ The extraction pipeline SHALL no longer forward uploaded files directly from `ap
 - **THEN** it SHALL not send the file directly to `api-llm`
 - **AND** it SHALL return processing output to `portal-agrobot` for next-step orchestration
 
+### Requirement: Excluir metadado e artefatos AWS de forma coordenada
+The system SHALL remover metadado e artefatos AWS relacionados em um fluxo unico de exclusao.
+
+#### Scenario: Exclusao completa de arquivo registrado
+- **WHEN** uma requisicao de exclusao for recebida para um arquivo registrado
+- **THEN** o sistema SHALL excluir o objeto original em `Arquivos/`
+- **AND** SHALL excluir o objeto JSON correspondente em `Json/`
+- **AND** SHALL remover o metadado correspondente no banco relacional
+
+#### Scenario: Falha antes da conclusao da exclusao
+- **WHEN** uma ou mais etapas falharem durante o fluxo de exclusao
+- **THEN** o sistema SHALL retornar resposta de falha
+- **AND** SHALL NOT retornar sucesso enquanto banco e storage estiverem inconsistentes
+
+#### Scenario: Registro inexistente para exclusao
+- **WHEN** uma requisicao de exclusao for recebida para `id` nao existente
+- **THEN** o sistema SHALL retornar resposta de arquivo nao encontrado
+

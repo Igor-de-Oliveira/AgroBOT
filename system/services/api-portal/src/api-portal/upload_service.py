@@ -1,14 +1,18 @@
 import hashlib
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any, Callable, Optional
+from urllib.parse import quote
 
 import requests
 from fastapi import HTTPException, UploadFile
 
 S3_PREFIX_FILES = "Arquivos/"
 S3_PREFIX_JSON = "Json/"
+INGESTION_TIMEOUT_SECONDS = 30
+logger = logging.getLogger(__name__)
 
 
 def sanitize_filename(raw_name: str) -> str:
@@ -38,6 +42,7 @@ def resolve_operation(metadata_exists: bool, object_exists: bool) -> str:
 async def process_upload_file(
     file: UploadFile,
     api_extractor_url: str,
+    api_llm_ingest_url: str,
     get_s3_settings: Callable[[], dict[str, str]],
     build_s3_client: Callable[[], Any],
     ensure_bucket_exists: Callable[[Any, str], None],
@@ -139,9 +144,86 @@ async def process_upload_file(
             detail=f"Falha ao salvar JSON no S3 ou atualizar metadados: {exc}",
         ) from exc
 
-    return {
-        "message": "Arquivo recebido, metadados sincronizados e JSON persistido no S3.",
+    metadata_after_upload = fetch_file_metadata(filename) or {}
+    internal_json_reference = (
+        f"{s3_settings['endpoint'].rstrip('/')}/{s3_settings['bucket_name']}/{quote(json_object_key, safe='/')}"
+    )
+    ingestion_payload = {
+        "file_id": metadata_after_upload.get("id"),
         "file_name": filename,
+        "file_hash": file_hash,
+        "logical_file_key": logical_file_key,
+        "json_reference": json_s3_link,
+        "json_internal_reference": internal_json_reference,
+    }
+    _log_ingestion(
+        "embedding_ingestion_attempt",
+        file_name=filename,
+        file_id=ingestion_payload["file_id"],
+        file_hash=file_hash,
+        logical_file_key=logical_file_key,
+        json_reference=json_s3_link,
+        json_internal_reference=internal_json_reference,
+        ingestion_url=api_llm_ingest_url,
+    )
+
+    try:
+        llm_response = requests_post(
+            api_llm_ingest_url,
+            json=ingestion_payload,
+            timeout=INGESTION_TIMEOUT_SECONDS,
+        )
+        llm_response.raise_for_status()
+    except requests.Timeout as exc:
+        _log_ingestion(
+            "embedding_ingestion_error",
+            file_name=filename,
+            file_hash=file_hash,
+            error_code="EMBEDDING_INGEST_TIMEOUT",
+            error_message=str(exc),
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "EMBEDDING_INGEST_TIMEOUT",
+                "message": "Falha na etapa de ingestao no api-llm por timeout.",
+            },
+        ) from exc
+    except requests.RequestException as exc:
+        _log_ingestion(
+            "embedding_ingestion_error",
+            file_name=filename,
+            file_hash=file_hash,
+            error_code="EMBEDDING_INGEST_UNAVAILABLE",
+            error_message=str(exc),
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "EMBEDDING_INGEST_UNAVAILABLE",
+                "message": "Falha na etapa de ingestao no api-llm por indisponibilidade de rede.",
+            },
+        ) from exc
+
+    llm_payload: dict[str, Any]
+    try:
+        llm_payload = llm_response.json()
+    except ValueError:
+        llm_payload = {"message": "api-llm respondeu sem corpo JSON."}
+
+    _log_ingestion(
+        "embedding_ingestion_success",
+        file_name=filename,
+        file_id=ingestion_payload["file_id"],
+        file_hash=file_hash,
+        logical_file_key=logical_file_key,
+        status_code=llm_response.status_code,
+    )
+
+    return {
+        "message": "Arquivo recebido, metadados sincronizados, JSON persistido e ingestao no api-llm concluida.",
+        "file_name": filename,
+        "file_id": ingestion_payload["file_id"],
         "logical_file_key": logical_file_key,
         "file_hash": file_hash,
         "source_file_s3_link": source_s3_link,
@@ -149,4 +231,13 @@ async def process_upload_file(
         "json_s3_link": json_s3_link,
         "json_s3_operation": json_operation,
         "extractor_response": extractor_payload,
+        "embeddings_ingestion": {
+            "status": "success",
+            "endpoint": api_llm_ingest_url,
+            "response": llm_payload,
+        },
     }
+
+
+def _log_ingestion(event: str, **payload: Any) -> None:
+    logger.info(json.dumps({"event": event, **payload}, ensure_ascii=False, default=str))

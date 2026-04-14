@@ -53,6 +53,7 @@ dirname = os.path.dirname(__file__)
 templates = Jinja2Templates(directory=os.path.join(dirname, "templates"))
 
 API_EXTRACTOR_URL = os.getenv("API_EXTRACTOR_URL", "http://api-extractor:8001/process_ods")
+API_LLM_INGEST_URL = os.getenv("API_LLM_INGEST_URL", "http://api-llm:8002/ingest_json_reference")
 ALLOWED_PAGE_SIZES = {25, 50, 100}
 
 
@@ -93,6 +94,7 @@ async def process_upload(file: UploadFile = File(...)):
     result = await process_upload_file(
         file=file,
         api_extractor_url=API_EXTRACTOR_URL,
+        api_llm_ingest_url=API_LLM_INGEST_URL,
         get_s3_settings=get_s3_settings,
         build_s3_client=build_s3_client,
         ensure_bucket_exists=ensure_bucket_exists,

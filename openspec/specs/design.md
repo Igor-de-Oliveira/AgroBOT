@@ -61,6 +61,8 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Orquestrar servicos via Docker Compose
 - Operar PostgreSQL 17 em Docker para metadados de arquivo
 - Centralizar no `api-portal` a orquestracao de upload, persistencia em S3 e reconciliacao de metadados
+- Acionar no `api-portal` a ingestao no `api-llm` apos persistencia do JSON em `Json/`
+- Utilizar contrato de ingestao com identificadores de correlacao (`file_id`, `file_hash`, `logical_file_key`, referencias JSON)
 
 ### 4.6 Expansao da Plataforma
 - Evoluir o portal web (api-portal)
@@ -109,6 +111,9 @@ Responsavel por:
 - Persistir metadados e links (`link_arquivo_AWS` e `link_json_aws`) no PostgreSQL
 - Encaminhar arquivo para o api-extractor e receber payload JSON processado
 - Persistir JSON retornado no S3 em `Json/`
+- Acionar `POST /ingest_json_reference` no `api-llm` apos persistencia do JSON
+- Enviar contrato de ingestao com `file_id`, `file_hash`, `logical_file_key`, `json_reference` e `json_internal_reference`
+- Registrar logs estruturados de tentativa, sucesso e falha da etapa de embeddings
 - Expor endpoint de listagem paginada (`page`, `page_size`) com total de registros
 - Expor endpoint de detalhe por `id`
 - Expor endpoint de exclusao coordenada entre S3 e PostgreSQL
@@ -124,10 +129,12 @@ Responsavel por:
 
 ### 6.3 api-llm
 Responsavel por:
-- Ingestao de dados
+- Ingestao de dados por referencia JSON enviada pelo portal
 - Geracao de embeddings
+- Geracao/atualizacao de embeddings no reprocessamento do mesmo arquivo logico
 - Implementacao de RAG
 - Respostas inteligentes
+- Registrar logs estruturados para correlacao da ingestao com o arquivo processado
 
 ### 6.4 bd-vetorial
 Responsavel por:
@@ -164,13 +171,14 @@ Responsavel por:
 5. api-portal encaminha arquivo para api-extractor
 6. api-extractor processa o arquivo e retorna JSON ao api-portal
 7. api-portal salva/sobrescreve JSON no S3 em `Json/` e atualiza metadados
-8. (Etapa separada) dados processados podem ser encaminhados para fluxo de ingestao no api-llm
-9. api-llm gera embeddings
-10. Dados sao indexados no banco vetorial
-11. Usuario realiza pergunta via Telegram ou Web
-12. Interface encaminha para api-llm
-13. LLM consulta banco vetorial (RAG)
-14. Resposta e gerada e retornada ao usuario
+8. api-portal chama `POST /ingest_json_reference` no `api-llm` com dados de correlacao e referencias do JSON
+9. api-llm busca o JSON preferencialmente por `json_internal_reference` e usa `json_reference` como fallback
+10. api-llm gera embeddings e envia para indexacao no banco vetorial
+11. Em falha de ingestao, o sistema retorna erro claro da etapa de embeddings sem remover artefatos ja persistidos
+12. Usuario realiza pergunta via Telegram ou Web
+13. Interface encaminha para api-llm
+14. LLM consulta banco vetorial (RAG)
+15. Resposta e gerada e retornada ao usuario
 
 ### 7.1 Fluxo de consulta e gestao de arquivos registrados
 
@@ -205,6 +213,8 @@ Responsavel por:
 - Politica de overwrite para reprocessamento do mesmo arquivo logico
 - Regras de validacao para paginacao (`page >= 1` e `page_size` permitido)
 - Exclusao coordenada com tratamento de erro para evitar sucesso com estado inconsistente
+- Falha de rede/timeout na ingestao do `api-llm` sem perda de artefatos ja persistidos
+- Padronizacao de erros da etapa de embeddings para diagnostico operacional
 
 ### 8.4 Manutenibilidade
 - Codigo modular
@@ -215,6 +225,8 @@ Responsavel por:
 - Logs centralizados
 - Monitoramento de servicos
 - Indicadores de upload e persistencia de metadados
+- Logs estruturados no `api-portal` para tentativas e resultado de ingestao no `api-llm`
+- Logs estruturados no `api-llm` para correlacionar requisicao de ingestao com o arquivo processado
 
 ---
 

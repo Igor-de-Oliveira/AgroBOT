@@ -7,13 +7,14 @@ from fastapi.testclient import TestClient
 from psycopg.rows import dict_row
 
 
-class ExtractorResponse:
+class FakeHttpResponse:
     def __init__(self, payload=None):
         self._payload = payload or {
             "message": "ok",
             "artifacts": [{"artifact_name": "dados.json", "records": [{"a": 1}]}],
             "artifacts_count": 1,
         }
+        self.status_code = 200
 
     def raise_for_status(self):
         return None
@@ -78,7 +79,14 @@ def ensure_database_available(module):
 
 
 def install_fakes(module, monkeypatch, s3_store):
-    monkeypatch.setattr(module.requests, "post", lambda *args, **kwargs: ExtractorResponse())
+    def fake_post(url, *args, **kwargs):
+        if url == module.API_EXTRACTOR_URL:
+            return FakeHttpResponse()
+        if url == module.API_LLM_INGEST_URL:
+            return FakeHttpResponse({"message": "ingestao concluida", "status": "success"})
+        return FakeHttpResponse({"message": "ok"})
+
+    monkeypatch.setattr(module.requests, "post", fake_post)
     monkeypatch.setattr(module, "build_s3_client", lambda: object())
     monkeypatch.setattr(module, "ensure_bucket_exists", lambda *args, **kwargs: None)
 

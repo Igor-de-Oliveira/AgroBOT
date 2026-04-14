@@ -89,3 +89,32 @@ The system SHALL remover metadado e artefatos AWS relacionados em um fluxo unico
 - **WHEN** uma requisicao de exclusao for recebida para `id` nao existente
 - **THEN** o sistema SHALL retornar resposta de arquivo nao encontrado
 
+
+### Requirement: Persistir status de processamento da ingestao
+The system SHALL persistir no metadado relacional um campo `status_processamento` para representar o estado da etapa de ingestao no `api-llm`.
+
+#### Scenario: Registro de upload e criado para novo processamento
+- **WHEN** um arquivo for recebido e o JSON for persistido para ingestao
+- **THEN** o sistema SHALL persistir `status_processamento = em_processamento` no registro do arquivo
+
+### Requirement: Restringir valores validos de status de processamento
+The system SHALL aceitar apenas os valores `em_processamento`, `processado` e `erro` para `status_processamento`.
+
+#### Scenario: Atualizacao de status para sucesso
+- **WHEN** a etapa assincrona de ingestao finalizar com sucesso
+- **THEN** o sistema SHALL atualizar `status_processamento` para `processado`
+
+#### Scenario: Atualizacao de status para falha
+- **WHEN** a etapa assincrona de ingestao falhar por erro funcional, timeout ou indisponibilidade
+- **THEN** o sistema SHALL atualizar `status_processamento` para `erro`
+
+### Requirement: Expor status de processamento em consultas de metadados
+The system SHALL incluir `status_processamento` nos payloads de listagem e detalhe de arquivos.
+
+#### Scenario: Consulta de listagem de arquivos
+- **WHEN** o cliente chamar `GET /api/files`
+- **THEN** cada item da resposta SHALL conter `status_processamento` correspondente ao registro persistido
+
+#### Scenario: Consulta de detalhe de arquivo
+- **WHEN** o cliente chamar `GET /api/files/{id}`
+- **THEN** a resposta SHALL conter `status_processamento` correspondente ao registro persistido

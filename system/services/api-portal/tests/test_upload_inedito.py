@@ -25,3 +25,4 @@ def test_upload_inedito_persiste_link_s3(portal_module, fake_s3_store, monkeypat
     assert row["file_hash"] == expected_hash
     assert row["link_arquivo_aws"].startswith("http://localhost:9000/test-bucket/Arquivos/")
     assert row["link_json_aws"].startswith("http://localhost:9000/test-bucket/Json/")
+    assert row["status_processamento"] == "processado"

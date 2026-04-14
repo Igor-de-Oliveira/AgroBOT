@@ -87,3 +87,18 @@ The system SHALL disponibilizar acao de exclusao por item na lista, acionando re
 - **THEN** o sistema SHALL executar o fluxo de exclusao do arquivo
 - **AND** SHALL atualizar a lista para refletir o estado atual persistido
 
+
+### Requirement: Exibir status de processamento por arquivo na listagem
+The system SHALL exibir, na tela de arquivos, um label de `status_processamento` para cada item da lista.
+
+#### Scenario: Arquivo em processamento
+- **WHEN** um item da listagem tiver `status_processamento = em_processamento`
+- **THEN** a interface SHALL exibir label "Em processamento" ao lado do arquivo
+
+#### Scenario: Arquivo processado com sucesso
+- **WHEN** um item da listagem tiver `status_processamento = processado`
+- **THEN** a interface SHALL exibir label "Processado" ao lado do arquivo
+
+#### Scenario: Arquivo com falha de processamento
+- **WHEN** um item da listagem tiver `status_processamento = erro`
+- **THEN** a interface SHALL exibir label "Erro" ao lado do arquivo

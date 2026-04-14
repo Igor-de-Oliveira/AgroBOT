@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 import requests
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,6 +16,7 @@ try:
         fetch_file_metadata,
         get_connection,
         list_file_metadata,
+        update_file_processing_status,
         upsert_file_metadata,
     )
     from .s3_storage import (
@@ -27,7 +28,7 @@ try:
         object_exists_in_s3,
         upload_bytes_to_s3,
     )
-    from .upload_service import process_upload_file
+    from .upload_service import execute_llm_ingestion_task, process_upload_file
 except ImportError:
     from database import (
         delete_file_metadata_by_id,
@@ -36,6 +37,7 @@ except ImportError:
         fetch_file_metadata_by_id,
         get_connection,
         list_file_metadata,
+        update_file_processing_status,
         upsert_file_metadata,
     )
     from s3_storage import (
@@ -47,7 +49,7 @@ except ImportError:
         object_exists_in_s3,
         upload_bytes_to_s3,
     )
-    from upload_service import process_upload_file
+    from upload_service import execute_llm_ingestion_task, process_upload_file
 
 dirname = os.path.dirname(__file__)
 templates = Jinja2Templates(directory=os.path.join(dirname, "templates"))
@@ -90,7 +92,7 @@ async def processamento_arquivos(request: Request):
 
 
 @app.post("/process_ods")
-async def process_upload(file: UploadFile = File(...)):
+async def process_upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     result = await process_upload_file(
         file=file,
         api_extractor_url=API_EXTRACTOR_URL,
@@ -103,8 +105,22 @@ async def process_upload(file: UploadFile = File(...)):
         fetch_file_metadata=fetch_file_metadata,
         upsert_file_metadata=upsert_file_metadata,
         requests_post=requests.post,
+        schedule_background_ingestion=lambda ingestion_payload: schedule_ingestion_task(
+            background_tasks=background_tasks,
+            ingestion_payload=ingestion_payload,
+        ),
     )
     return JSONResponse(content=result)
+
+
+def schedule_ingestion_task(background_tasks: BackgroundTasks, ingestion_payload: dict) -> None:
+    background_tasks.add_task(
+        execute_llm_ingestion_task,
+        ingestion_payload=ingestion_payload,
+        api_llm_ingest_url=API_LLM_INGEST_URL,
+        requests_post=requests.post,
+        update_file_processing_status=update_file_processing_status,
+    )
 
 
 def validate_pagination(page: int, page_size: int) -> None:

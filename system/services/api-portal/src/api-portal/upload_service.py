@@ -51,6 +51,7 @@ async def process_upload_file(
     fetch_file_metadata: Callable[[str], Optional[dict[str, Any]]],
     upsert_file_metadata: Callable[..., None],
     requests_post: Callable[..., Any],
+    schedule_background_ingestion: Callable[[dict[str, Any]], None],
 ) -> dict[str, Any]:
     filename = file.filename
     if not filename:
@@ -137,6 +138,7 @@ async def process_upload_file(
             file_hash=file_hash,
             link_arquivo_aws=source_s3_link,
             link_json_aws=json_s3_link,
+            status_processamento="em_processamento",
         )
     except Exception as exc:
         raise HTTPException(
@@ -156,72 +158,10 @@ async def process_upload_file(
         "json_reference": json_s3_link,
         "json_internal_reference": internal_json_reference,
     }
-    _log_ingestion(
-        "embedding_ingestion_attempt",
-        file_name=filename,
-        file_id=ingestion_payload["file_id"],
-        file_hash=file_hash,
-        logical_file_key=logical_file_key,
-        json_reference=json_s3_link,
-        json_internal_reference=internal_json_reference,
-        ingestion_url=api_llm_ingest_url,
-    )
-
-    try:
-        llm_response = requests_post(
-            api_llm_ingest_url,
-            json=ingestion_payload,
-            timeout=INGESTION_TIMEOUT_SECONDS,
-        )
-        llm_response.raise_for_status()
-    except requests.Timeout as exc:
-        _log_ingestion(
-            "embedding_ingestion_error",
-            file_name=filename,
-            file_hash=file_hash,
-            error_code="EMBEDDING_INGEST_TIMEOUT",
-            error_message=str(exc),
-        )
-        raise HTTPException(
-            status_code=502,
-            detail={
-                "code": "EMBEDDING_INGEST_TIMEOUT",
-                "message": "Falha na etapa de ingestao no api-llm por timeout.",
-            },
-        ) from exc
-    except requests.RequestException as exc:
-        _log_ingestion(
-            "embedding_ingestion_error",
-            file_name=filename,
-            file_hash=file_hash,
-            error_code="EMBEDDING_INGEST_UNAVAILABLE",
-            error_message=str(exc),
-        )
-        raise HTTPException(
-            status_code=502,
-            detail={
-                "code": "EMBEDDING_INGEST_UNAVAILABLE",
-                "message": "Falha na etapa de ingestao no api-llm por indisponibilidade de rede.",
-            },
-        ) from exc
-
-    llm_payload: dict[str, Any]
-    try:
-        llm_payload = llm_response.json()
-    except ValueError:
-        llm_payload = {"message": "api-llm respondeu sem corpo JSON."}
-
-    _log_ingestion(
-        "embedding_ingestion_success",
-        file_name=filename,
-        file_id=ingestion_payload["file_id"],
-        file_hash=file_hash,
-        logical_file_key=logical_file_key,
-        status_code=llm_response.status_code,
-    )
+    schedule_background_ingestion(ingestion_payload)
 
     return {
-        "message": "Arquivo recebido, metadados sincronizados, JSON persistido e ingestao no api-llm concluida.",
+        "message": "Arquivo recebido, metadados sincronizados, JSON persistido e ingestao no api-llm agendada.",
         "file_name": filename,
         "file_id": ingestion_payload["file_id"],
         "logical_file_key": logical_file_key,
@@ -232,12 +172,87 @@ async def process_upload_file(
         "json_s3_operation": json_operation,
         "extractor_response": extractor_payload,
         "embeddings_ingestion": {
-            "status": "success",
+            "status": "queued",
             "endpoint": api_llm_ingest_url,
-            "response": llm_payload,
+            "response": {"message": "Ingestao agendada em background."},
         },
     }
 
 
 def _log_ingestion(event: str, **payload: Any) -> None:
     logger.info(json.dumps({"event": event, **payload}, ensure_ascii=False, default=str))
+
+
+def execute_llm_ingestion_task(
+    ingestion_payload: dict[str, Any],
+    api_llm_ingest_url: str,
+    requests_post: Callable[..., Any],
+    update_file_processing_status: Callable[[int, str], None],
+) -> None:
+    file_id = ingestion_payload.get("file_id")
+    if not isinstance(file_id, int):
+        _log_ingestion(
+            "embedding_ingestion_error",
+            error_code="EMBEDDING_INGEST_INVALID_FILE_ID",
+            error_message="Payload sem file_id valido para atualizar status.",
+            payload=ingestion_payload,
+        )
+        return
+
+    _log_ingestion(
+        "embedding_ingestion_attempt",
+        file_name=ingestion_payload.get("file_name"),
+        file_id=file_id,
+        file_hash=ingestion_payload.get("file_hash"),
+        logical_file_key=ingestion_payload.get("logical_file_key"),
+        json_reference=ingestion_payload.get("json_reference"),
+        json_internal_reference=ingestion_payload.get("json_internal_reference"),
+        ingestion_url=api_llm_ingest_url,
+    )
+
+    try:
+        response = requests_post(
+            api_llm_ingest_url,
+            json=ingestion_payload,
+            timeout=INGESTION_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        update_file_processing_status(file_id, "processado")
+        _log_ingestion(
+            "embedding_ingestion_success",
+            file_name=ingestion_payload.get("file_name"),
+            file_id=file_id,
+            file_hash=ingestion_payload.get("file_hash"),
+            logical_file_key=ingestion_payload.get("logical_file_key"),
+            status_code=response.status_code,
+        )
+    except requests.Timeout as exc:
+        update_file_processing_status(file_id, "erro")
+        _log_ingestion(
+            "embedding_ingestion_error",
+            file_name=ingestion_payload.get("file_name"),
+            file_id=file_id,
+            file_hash=ingestion_payload.get("file_hash"),
+            error_code="EMBEDDING_INGEST_TIMEOUT",
+            error_message=str(exc),
+        )
+    except requests.RequestException as exc:
+        update_file_processing_status(file_id, "erro")
+        _log_ingestion(
+            "embedding_ingestion_error",
+            file_name=ingestion_payload.get("file_name"),
+            file_id=file_id,
+            file_hash=ingestion_payload.get("file_hash"),
+            error_code="EMBEDDING_INGEST_UNAVAILABLE",
+            error_message=str(exc),
+        )
+    except Exception as exc:
+        update_file_processing_status(file_id, "erro")
+        _log_ingestion(
+            "embedding_ingestion_error",
+            file_name=ingestion_payload.get("file_name"),
+            file_id=file_id,
+            file_hash=ingestion_payload.get("file_hash"),
+            error_code="EMBEDDING_INGEST_UNKNOWN",
+            error_message=str(exc),
+        )

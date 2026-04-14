@@ -53,7 +53,7 @@ def fetch_metadata(module, file_name: str):
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 """
-                SELECT id, file_name, file_hash, link_arquivo_AWS, link_json_aws, created_at, updated_at
+                SELECT id, file_name, file_hash, link_arquivo_AWS, link_json_aws, status_processamento, created_at, updated_at
                 FROM file_metadata
                 WHERE file_name = %s
                 """,

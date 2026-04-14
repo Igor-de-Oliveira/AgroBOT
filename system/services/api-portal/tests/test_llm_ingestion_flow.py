@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 from uuid import uuid4
 
 from .conftest import fetch_metadata, install_fakes, truncate_table, upload_file
@@ -27,15 +27,39 @@ def test_fluxo_feliz_upload_extracao_persistencia_e_ingestao_llm(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["embeddings_ingestion"]["status"] == "success"
+    assert body["embeddings_ingestion"]["status"] == "queued"
     assert body["embeddings_ingestion"]["endpoint"] == portal_module.API_LLM_INGEST_URL
 
     row = fetch_metadata(portal_module, filename)
     assert row is not None
     assert row["link_json_aws"].startswith("http://localhost:9000/test-bucket/Json/")
+    assert row["status_processamento"] == "processado"
 
 
-def test_falha_ingestao_llm_retorna_erro_claro_e_preserva_json(
+def test_upload_retorna_em_processamento_apos_agendamento(
+    portal_module, fake_s3_store, monkeypatch, client
+):
+    install_fakes(portal_module, monkeypatch, fake_s3_store)
+    truncate_table(portal_module)
+
+    monkeypatch.setattr(
+        portal_module,
+        "schedule_ingestion_task",
+        lambda background_tasks, ingestion_payload: None,
+    )
+
+    filename = f"integration-{uuid4().hex}.ods"
+    response = upload_file(client, filename, b"conteudo-em-processamento")
+
+    assert response.status_code == 200
+    assert response.json()["embeddings_ingestion"]["status"] == "queued"
+
+    row = fetch_metadata(portal_module, filename)
+    assert row is not None
+    assert row["status_processamento"] == "em_processamento"
+
+
+def test_falha_ingestao_llm_atualiza_status_para_erro_sem_remover_json(
     portal_module, fake_s3_store, monkeypatch, client
 ):
     truncate_table(portal_module)
@@ -71,13 +95,12 @@ def test_falha_ingestao_llm_retorna_erro_claro_e_preserva_json(
     filename = f"integration-{uuid4().hex}.ods"
     response = upload_file(client, filename, b"conteudo-falha-llm")
 
-    assert response.status_code == 502
-    body = response.json()
-    assert body["detail"]["code"] == "EMBEDDING_INGEST_UNAVAILABLE"
+    assert response.status_code == 200
 
     row = fetch_metadata(portal_module, filename)
     assert row is not None
     assert row["link_json_aws"] is not None
+    assert row["status_processamento"] == "erro"
     assert any(object_key.startswith("Json/") for (_, object_key) in fake_s3_store.objects.keys())
 
 
@@ -126,6 +149,10 @@ def test_reprocessamento_do_mesmo_arquivo_dispara_reingestao(
     assert llm_calls[0]["logical_file_key"] == llm_calls[1]["logical_file_key"]
     assert llm_calls[0]["file_hash"] != llm_calls[1]["file_hash"]
 
+    row = fetch_metadata(portal_module, filename)
+    assert row is not None
+    assert row["status_processamento"] == "processado"
+
 
 def test_indisponibilidade_temporaria_permite_retentativa_posterior(
     portal_module, fake_s3_store, monkeypatch, client
@@ -166,9 +193,16 @@ def test_indisponibilidade_temporaria_permite_retentativa_posterior(
 
     filename = f"integration-{uuid4().hex}.ods"
     first = upload_file(client, filename, b"conteudo-timeout-v1")
-    second = upload_file(client, filename, b"conteudo-timeout-v2")
+    assert first.status_code == 200
 
-    assert first.status_code == 502
-    assert first.json()["detail"]["code"] == "EMBEDDING_INGEST_TIMEOUT"
+    first_row = fetch_metadata(portal_module, filename)
+    assert first_row is not None
+    assert first_row["status_processamento"] == "erro"
+
+    second = upload_file(client, filename, b"conteudo-timeout-v2")
     assert second.status_code == 200
     assert llm_attempts["count"] == 2
+
+    second_row = fetch_metadata(portal_module, filename)
+    assert second_row is not None
+    assert second_row["status_processamento"] == "processado"

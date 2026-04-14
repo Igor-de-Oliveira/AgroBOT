@@ -43,6 +43,7 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Indexar informacoes em banco vetorial para busca semantica
 - Persistir metadados de upload em banco relacional
 - Persistir links de storage (`link_arquivo_AWS` e `link_json_aws`) no PostgreSQL
+- Persistir `status_processamento` com valores controlados (`em_processamento`, `processado`, `erro`)
 - Permitir consultas eficientes por similaridade e por historico de arquivos enviados
 
 ### 4.3 Inteligencia Artificial (LLM + RAG)
@@ -61,14 +62,16 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Orquestrar servicos via Docker Compose
 - Operar PostgreSQL 17 em Docker para metadados de arquivo
 - Centralizar no `api-portal` a orquestracao de upload, persistencia em S3 e reconciliacao de metadados
-- Acionar no `api-portal` a ingestao no `api-llm` apos persistencia do JSON em `Json/`
+- Acionar no `api-portal` a ingestao no `api-llm` de forma assincrona via `BackgroundTasks` apos persistencia do JSON em `Json/`
 - Utilizar contrato de ingestao com identificadores de correlacao (`file_id`, `file_hash`, `logical_file_key`, referencias JSON)
+- Atualizar status de processamento no ciclo de ingestao (`em_processamento` -> `processado` ou `erro`)
 
 ### 4.6 Expansao da Plataforma
 - Evoluir o portal web (api-portal)
 - Centralizar funcionalidades de upload e observabilidade do processamento
 - Disponibilizar listagem paginada de arquivos com `page_size` 25/50/100
 - Disponibilizar tela de detalhes do arquivo com metadados e downloads
+- Exibir status de processamento por item na listagem com labels de interface
 - Permitir exclusao coordenada de artefatos (`Arquivos/`, `Json/`) e metadado relacional
 - Permitir futuras integracoes e novas features
 
@@ -81,10 +84,11 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Conversao e estruturacao de dados
 - Indexacao em banco vetorial
 - Persistencia de metadados de arquivo (id, nome, hash, created_at, updated_at, links AWS/S3)
+- Persistencia de estado de processamento da ingestao (`status_processamento`)
 - Persistencia de arquivo original em `Arquivos/` e JSON processado em `Json/`
 - Validacao de existencia em banco + S3 antes de create/overwrite
 - Listagem paginada de arquivos registrados com total de registros
-- Consulta de detalhe por arquivo com `id`, `name`, `hash`, `created_at` e links AWS
+- Consulta de detalhe por arquivo com `id`, `name`, `hash`, `created_at`, links AWS e `status_processamento`
 - Exclusao completa de arquivo (S3 + banco) com retorno de falha em caso de inconsistencia
 - Consulta via chatbot
 - Arquitetura baseada em servicos independentes
@@ -109,15 +113,17 @@ Responsavel por:
 - Verificar existencia de arquivo no banco e no S3 para decidir create/overwrite/reconciliacao
 - Persistir arquivo original no S3 em `Arquivos/`
 - Persistir metadados e links (`link_arquivo_AWS` e `link_json_aws`) no PostgreSQL
+- Persistir e atualizar `status_processamento` no PostgreSQL durante o ciclo de ingestao
 - Encaminhar arquivo para o api-extractor e receber payload JSON processado
 - Persistir JSON retornado no S3 em `Json/`
-- Acionar `POST /ingest_json_reference` no `api-llm` apos persistencia do JSON
+- Agendar em `BackgroundTasks` a chamada `POST /ingest_json_reference` no `api-llm`
 - Enviar contrato de ingestao com `file_id`, `file_hash`, `logical_file_key`, `json_reference` e `json_internal_reference`
 - Registrar logs estruturados de tentativa, sucesso e falha da etapa de embeddings
+- Atualizar `status_processamento` para `processado` em sucesso e `erro` em falha da ingestao assincrona
 - Expor endpoint de listagem paginada (`page`, `page_size`) com total de registros
 - Expor endpoint de detalhe por `id`
 - Expor endpoint de exclusao coordenada entre S3 e PostgreSQL
-- Renderizar listagem web com controles de paginacao, tamanho de pagina e acoes de item
+- Renderizar listagem web com controles de paginacao, tamanho de pagina, status por item e acoes de item
 - Renderizar pagina de detalhes com botoes de download de arquivo original e JSON
 
 ### 6.2 api-extractor
@@ -171,10 +177,13 @@ Responsavel por:
 5. api-portal encaminha arquivo para api-extractor
 6. api-extractor processa o arquivo e retorna JSON ao api-portal
 7. api-portal salva/sobrescreve JSON no S3 em `Json/` e atualiza metadados
-8. api-portal chama `POST /ingest_json_reference` no `api-llm` com dados de correlacao e referencias do JSON
-9. api-llm busca o JSON preferencialmente por `json_internal_reference` e usa `json_reference` como fallback
-10. api-llm gera embeddings e envia para indexacao no banco vetorial
-11. Em falha de ingestao, o sistema retorna erro claro da etapa de embeddings sem remover artefatos ja persistidos
+8. api-portal define `status_processamento = em_processamento` e agenda task assincrona para ingestao no `api-llm`
+9. api-portal retorna sucesso do upload apos persistencia e agendamento, sem bloquear no processamento de embeddings
+10. task assincrona chama `POST /ingest_json_reference` no `api-llm` com dados de correlacao e referencias do JSON
+11. api-llm busca o JSON preferencialmente por `json_internal_reference` e usa `json_reference` como fallback
+12. api-llm gera embeddings e envia para indexacao no banco vetorial
+13. em sucesso da task, `status_processamento` e atualizado para `processado`
+14. em falha da task, `status_processamento` e atualizado para `erro` sem remover artefatos ja persistidos
 12. Usuario realiza pergunta via Telegram ou Web
 13. Interface encaminha para api-llm
 14. LLM consulta banco vetorial (RAG)
@@ -184,10 +193,10 @@ Responsavel por:
 
 1. Usuario abre a tela de arquivos no portal
 2. Frontend consulta `GET /api/files` com `page` e `page_size`
-3. Backend retorna itens da pagina e total de registros
+3. Backend retorna itens da pagina com `status_processamento` e total de registros
 4. Usuario pode alterar `page_size` (25/50/100) e navegar entre paginas
 5. Usuario pode abrir detalhes de um item (`GET /api/files/{id}`)
-6. Portal exibe `id`, `name`, `hash`, `created_at` e disponibiliza downloads por links AWS
+6. Portal exibe `id`, `name`, `hash`, `created_at`, `status_processamento` e disponibiliza downloads por links AWS
 7. Usuario pode excluir arquivo na listagem (`DELETE /api/files/{id}`)
 8. Backend remove objetos em `Arquivos/` e `Json/` e remove metadado no PostgreSQL
 9. Em falha parcial, backend retorna erro e nao sinaliza sucesso falso
@@ -215,6 +224,7 @@ Responsavel por:
 - Exclusao coordenada com tratamento de erro para evitar sucesso com estado inconsistente
 - Falha de rede/timeout na ingestao do `api-llm` sem perda de artefatos ja persistidos
 - Padronizacao de erros da etapa de embeddings para diagnostico operacional
+- Transicao de status rastreavel para monitoramento de itens em processamento, processados e com erro
 
 ### 8.4 Manutenibilidade
 - Codigo modular
@@ -248,6 +258,7 @@ O sistema sera considerado bem-sucedido se:
 - Usuarios conseguirem enviar dados sem erros
 - Usuarios conseguirem consultar arquivos registrados com navegacao paginada
 - Usuarios conseguirem visualizar detalhes e baixar artefatos do arquivo selecionado
+- Usuarios conseguirem acompanhar o status de processamento (`em_processamento`, `processado`, `erro`) na listagem e no detalhe
 - Usuarios conseguirem excluir registros com consistencia entre S3 e banco
 - Metadados de upload forem persistidos corretamente no PostgreSQL
 - Dados forem corretamente processados e indexados

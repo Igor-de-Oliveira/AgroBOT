@@ -11,6 +11,7 @@ def insert_metadata(portal_module, file_name: str, file_hash: str = "hash"):
         file_hash=file_hash,
         link_arquivo_aws=f"http://localhost:9000/test-bucket/Arquivos/{file_name}",
         link_json_aws=f"http://localhost:9000/test-bucket/Json/{file_name}.json",
+        status_processamento="processado",
     )
 
 
@@ -45,6 +46,7 @@ def test_lista_paginada_suporta_multiplas_paginas(portal_module, client):
     assert first_payload["total"] == 30
     assert len(first_payload["items"]) == 25
     assert first_payload["page"] == 1
+    assert all(item["status_processamento"] == "processado" for item in first_payload["items"])
 
     second_page = client.get("/api/files?page=2&page_size=25")
     assert second_page.status_code == 200
@@ -112,6 +114,7 @@ def test_detalhe_retorna_campos_esperados(portal_module, client):
     assert payload["created_at"]
     assert payload["link_arquivo_AWS"].startswith("http://localhost:9000/test-bucket/Arquivos/")
     assert payload["link_json_aws"].startswith("http://localhost:9000/test-bucket/Json/")
+    assert payload["status_processamento"] == "processado"
 
 
 def test_exclusao_remove_s3_e_metadado(portal_module, monkeypatch, client):

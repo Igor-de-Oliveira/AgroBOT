@@ -46,6 +46,47 @@ services:
     networks:
       - app-network
 
+  api-portal:
+    build: ./system/services/api-portal
+    container_name: api-portal
+    env_file:
+      - ./system/.env
+    depends_on:
+      api-llm:
+        condition: service_started
+      postgres-arquivos:
+        condition: service_healthy
+      api-extractor:
+        condition: service_started
+    environment:
+      TZ: "America/Sao_Paulo"
+    ports:
+      - "8003:8003"
+    restart: always
+    networks:
+      - app-network
+
+  postgres-arquivos:
+    image: postgres:17
+    container_name: postgres-arquivos
+    environment:
+      TZ: "America/Sao_Paulo"
+      POSTGRES_DB: ${POSTGRES_DB:-agrobot}
+      POSTGRES_USER: ${POSTGRES_USER:-agrobot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agrobot}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_arquivos_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agrobot} -d ${POSTGRES_DB:-agrobot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - app-network
+
   bd-vetorial:
     build: ./system/services/bd-vetorial
     container_name: bd-vetorial
@@ -76,8 +117,29 @@ services:
     networks:
       - app-network
 
+  minio:
+    image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
+    container_name: minio
+    environment:
+      TZ: "America/Sao_Paulo"
+      MINIO_ROOT_USER: admin123
+      MINIO_ROOT_PASSWORD: admin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: always
+    networks:
+      - app-network
+
 volumes:
   qdrant_storage:
+    driver: local
+  minio_data:
+    driver: local
+  postgres_arquivos_data:
     driver: local
 
 networks:

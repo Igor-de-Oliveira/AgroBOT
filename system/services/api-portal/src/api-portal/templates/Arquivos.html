@@ -1,0 +1,441 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquivos cadastrados</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fb;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2c3e50;
+            padding: 0 20px;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+
+        .nav-links a:hover {
+            background-color: #34495e;
+        }
+
+        .container {
+            max-width: 1380px;
+            width: min(96vw, 1380px);
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status {
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: #e9f2ff;
+            color: #1f4e85;
+        }
+
+        .status.error {
+            display: block;
+            background: #ffe9e9;
+            color: #9d1f1f;
+        }
+
+        .status.success {
+            display: block;
+            background: #e8f7ed;
+            color: #1a6a39;
+        }
+
+        .table-wrapper {
+            background: #ffffff;
+            border-radius: 10px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 860px;
+        }
+
+        th, td {
+            padding: 9px 8px;
+            border-bottom: 1px solid #eceff3;
+            text-align: left;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #eef3fa;
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            white-space: nowrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .status-em-processamento {
+            background: #fff7e6;
+            color: #8a5a00;
+            border-color: #ffe2a3;
+        }
+
+        .status-processado {
+            background: #e8f7ed;
+            color: #1a6a39;
+            border-color: #bfe8cc;
+        }
+
+        .status-erro {
+            background: #ffe9e9;
+            color: #9d1f1f;
+            border-color: #f6bcbc;
+        }
+
+        button, select, .link-btn {
+            border-radius: 6px;
+            border: 1px solid #cad4e0;
+            background: #ffffff;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .danger {
+            border-color: #d9534f;
+            color: #b22b27;
+        }
+
+        .link-btn {
+            text-decoration: none;
+            color: #2c3e50;
+            display: inline-block;
+        }
+
+        .pagination {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .empty {
+            padding: 24px;
+            text-align: center;
+            color: #4b5b6b;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            th:nth-child(3), td:nth-child(3) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            th, td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+
+            .status-badge {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+
+            .link-btn, button {
+                font-size: 12px;
+                padding: 7px 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
+        <div class="nav-links">
+            <a href="/user">Usuario</a>
+            <a href="/arquivos">Arquivos</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="topbar">
+            <h1>Arquivos registrados</h1>
+            <div class="topbar-actions">
+                <label for="page-size">Itens por pagina:</label>
+                <select id="page-size">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <button onclick="window.location.href='/procesamento_arquivos'">Adicionar arquivo</button>
+            </div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="empty-state" class="empty">Nenhum arquivo registrado.</div>
+
+        <div id="table-wrapper" class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Hash</th>
+                        <th>Status</th>
+                        <th>Criado em</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="pagination">
+            <div id="page-info"></div>
+            <div>
+                <button id="prev-btn">Anterior</button>
+                <button id="next-btn">Proxima</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const state = {
+            page: 1,
+            pageSize: 25,
+            total: 0,
+            loading: false,
+        };
+
+        const statusEl = document.getElementById("status");
+        const rowsEl = document.getElementById("rows");
+        const emptyEl = document.getElementById("empty-state");
+        const tableWrapperEl = document.getElementById("table-wrapper");
+        const pageInfoEl = document.getElementById("page-info");
+        const prevBtn = document.getElementById("prev-btn");
+        const nextBtn = document.getElementById("next-btn");
+        const pageSizeEl = document.getElementById("page-size");
+
+        function setStatus(type, message) {
+            statusEl.className = "status";
+            statusEl.textContent = "";
+            if (!message) {
+                return;
+            }
+            statusEl.classList.add(type);
+            statusEl.textContent = message;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return "-";
+            const date = new Date(dateString);
+            return date.toLocaleString("pt-BR");
+        }
+
+        function renderStatusBadge(status) {
+            if (status === "processado") {
+                return `<span class="status-badge status-processado">Processado</span>`;
+            }
+            if (status === "erro") {
+                return `<span class="status-badge status-erro">Erro</span>`;
+            }
+            return `<span class="status-badge status-em-processamento">Em processamento</span>`;
+        }
+
+        function renderRows(items) {
+            rowsEl.innerHTML = "";
+            items.forEach((item) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.name}</td>
+                    <td>${item.hash}</td>
+                    <td>${renderStatusBadge(item.status_processamento)}</td>
+                    <td>${formatDate(item.created_at)}</td>
+                    <td>
+                        <div class="actions">
+                            <a class="link-btn" href="/arquivos/${item.id}">Ver arquivo</a>
+                            <button class="danger" data-delete-id="${item.id}">Excluir arquivo</button>
+                        </div>
+                    </td>
+                `;
+                rowsEl.appendChild(tr);
+            });
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.max(1, Math.ceil(state.total / state.pageSize));
+            pageInfoEl.textContent = `Pagina ${state.page} de ${totalPages} (${state.total} registro(s))`;
+            prevBtn.disabled = state.page <= 1 || state.loading;
+            nextBtn.disabled = state.page >= totalPages || state.loading;
+            document.getElementById("pagination").style.display = state.total > 0 ? "flex" : "none";
+        }
+
+        async function loadList() {
+            state.loading = true;
+            setStatus("loading", "Carregando lista...");
+            updatePaginationControls();
+            try {
+                const response = await fetch(`/api/files?page=${state.page}&page_size=${state.pageSize}`);
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao buscar lista de arquivos.");
+                }
+
+                state.total = payload.total;
+                const items = payload.items || [];
+
+                if (items.length === 0) {
+                    rowsEl.innerHTML = "";
+                    tableWrapperEl.style.display = "none";
+                    emptyEl.style.display = "block";
+                    setStatus("", "");
+                } else {
+                    tableWrapperEl.style.display = "block";
+                    emptyEl.style.display = "none";
+                    renderRows(items);
+                    setStatus("", "");
+                }
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao carregar arquivos.");
+            } finally {
+                state.loading = false;
+                updatePaginationControls();
+            }
+        }
+
+        async function deleteItem(fileId) {
+            const confirmed = window.confirm("Confirma a exclusao do arquivo?");
+            if (!confirmed) return;
+
+            setStatus("loading", "Excluindo arquivo...");
+            try {
+                const response = await fetch(`/api/files/${fileId}`, { method: "DELETE" });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao excluir arquivo.");
+                }
+
+                setStatus("success", "Arquivo excluido com sucesso.");
+                await loadList();
+
+                if (state.total > 0) {
+                    const totalPages = Math.max(1, Math.ceil(state.total / state.pageSize));
+                    if (state.page > totalPages) {
+                        state.page = totalPages;
+                        await loadList();
+                    }
+                } else if (state.page > 1) {
+                    state.page -= 1;
+                    await loadList();
+                }
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao excluir arquivo.");
+            }
+        }
+
+        rowsEl.addEventListener("click", async (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+            const fileId = target.getAttribute("data-delete-id");
+            if (!fileId) return;
+            await deleteItem(fileId);
+        });
+
+        prevBtn.addEventListener("click", async () => {
+            if (state.page <= 1) return;
+            state.page -= 1;
+            await loadList();
+        });
+
+        nextBtn.addEventListener("click", async () => {
+            const totalPages = Math.max(1, Math.ceil(state.total / state.pageSize));
+            if (state.page >= totalPages) return;
+            state.page += 1;
+            await loadList();
+        });
+
+        pageSizeEl.addEventListener("change", async (event) => {
+            const selected = Number(event.target.value);
+            if (![25, 50, 100].includes(selected)) return;
+            state.pageSize = selected;
+            state.page = 1;
+            await loadList();
+        });
+
+        loadList();
+    </script>
+</body>
+</html>

@@ -98,6 +98,12 @@ Crie um arquivo `.env` na raiz do projeto, com as seguintes variaveis:
 ```bash
 OPENAI_API_KEY= XXXXXX
 TELEGRAM_BOT_TOKEN = XXXXXX
+POSTGRES_HOST=postgres-arquivos
+POSTGRES_PORT=5432
+POSTGRES_DB=agrobot
+POSTGRES_USER=agrobot
+POSTGRES_PASSWORD=agrobot
+API_EXTRACTOR_URL=http://api-extractor:8001/process_ods
 ```
 
 ## Desenvolvimento Local

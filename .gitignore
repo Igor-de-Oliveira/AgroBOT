@@ -12,3 +12,9 @@ ENV/
 # Environment files
 .env
 .env.*
+
+# spec-driven development
+.claude/
+.codex/
+.github/
+openspec/changes

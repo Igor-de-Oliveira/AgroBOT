@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Processar arquivos</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2c3e50;
+            padding: 0 20px;
+        }
+
+        .content {
+            padding: 0 20px;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #f5f7fb;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover {
+            background-color: #34495e;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
+        <div class="nav-links">
+            <a href="/user">Usuário</a>
+            <a href="/arquivos">Arquivos</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <h1>Bem-vindo à Página de Arquivos</h1>
+
+        <label for="file-upload">Selecione um arquivo para processar:</label>
+        <input type="file" id="file-upload" name="file-upload" accept=".ods,.xlsx,.csv">
+        <br>
+
+        <button href="/" id="process-button">Processar</button>
+
+    </div>
+
+
+<script>
+document.getElementById("process-button").addEventListener("click", async () => {
+
+    const input = document.getElementById("file-upload");
+    const file = input.files[0];
+
+    if (!file) {
+        alert("Selecione um arquivo primeiro!");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch("http://localhost:8003/process_ods", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error("Erro ao enviar arquivo");
+        }
+
+        const data = await response.json();
+        console.log(data);
+        alert("Arquivo enviado com sucesso!");
+
+        // 🔥 LIMPA O CAMPO APÓS ENVIO
+        input.value = "";
+
+    } catch (error) {
+        console.error(error);
+        alert("Erro ao enviar arquivo.");
+    }
+
+});
+</script>
+
+
+</body>
+</html>

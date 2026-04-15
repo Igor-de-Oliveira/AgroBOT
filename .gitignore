@@ -18,3 +18,6 @@ ENV/
 .codex/
 .github/
 openspec/changes
+
+# Pasta de documentação em .md
+dock_PR

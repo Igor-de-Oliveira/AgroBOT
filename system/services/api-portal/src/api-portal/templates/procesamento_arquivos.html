@@ -2,11 +2,13 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Processar arquivos</title>
     <style>
         body {
             margin: 0;
             font-family: Arial, sans-serif;
+            background-color: #f5f7fb;
         }
 
         .navbar {
@@ -17,101 +19,161 @@
             padding: 0 20px;
         }
 
-        .content {
-            padding: 0 20px;
-        }
-
         .logo {
             color: white;
             text-decoration: none;
             font-size: 20px;
             font-weight: bold;
-        }
-
-        .logo:hover {
-            opacity: 0.8;
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
 
         .nav-links {
             display: flex;
-            gap: 15px;
+            align-items: center;
+            gap: 12px;
         }
 
-        .nav-links a {
+        .nav-links a, .nav-links button {
             text-decoration: none;
-            color: #f5f7fb;
+            color: white;
             padding: 10px 15px;
             border-radius: 5px;
-            transition: 0.3s;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
         }
 
-        .nav-links a:hover {
+        .nav-links a:hover, .nav-links button:hover {
             background-color: #34495e;
+        }
+
+        .container {
+            max-width: 760px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+        }
+
+        .status {
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: #e9f2ff;
+            color: #1f4e85;
+        }
+
+        .status.error {
+            display: block;
+            background: #ffe9e9;
+            color: #9d1f1f;
+        }
+
+        .status.success {
+            display: block;
+            background: #e8f7ed;
+            color: #1a6a39;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        button {
+            border-radius: 6px;
+            border: 1px solid #cad4e0;
+            background: #ffffff;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            width: fit-content;
         }
     </style>
 </head>
-
 <body>
-
     <nav class="navbar">
         <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
         <div class="nav-links">
-            <a href="/user">Usuário</a>
             <a href="/arquivos">Arquivos</a>
+            {% if current_user and current_user.credential == "admin" %}
+            <a href="/usuarios">Usuarios</a>
+            {% endif %}
+            <form action="/logout" method="post" style="margin: 0;">
+                <button type="submit">Logout</button>
+            </form>
         </div>
     </nav>
 
-    <div class="content">
-        <h1>Bem-vindo à Página de Arquivos</h1>
+    <main class="container">
+        <div class="card">
+            <h1>Processamento de arquivo</h1>
+            <div id="status" class="status"></div>
 
-        <label for="file-upload">Selecione um arquivo para processar:</label>
-        <input type="file" id="file-upload" name="file-upload" accept=".ods,.xlsx,.csv">
-        <br>
+            <div class="form-grid">
+                <label for="file-upload">Selecione um arquivo para processar:</label>
+                <input type="file" id="file-upload" name="file-upload" accept=".ods,.xlsx,.csv">
+                <button id="process-button">Processar</button>
+            </div>
+        </div>
+    </main>
 
-        <button href="/" id="process-button">Processar</button>
+    <script>
+        const input = document.getElementById("file-upload");
+        const processButton = document.getElementById("process-button");
+        const statusEl = document.getElementById("status");
 
-    </div>
-
-
-<script>
-document.getElementById("process-button").addEventListener("click", async () => {
-
-    const input = document.getElementById("file-upload");
-    const file = input.files[0];
-
-    if (!file) {
-        alert("Selecione um arquivo primeiro!");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-        const response = await fetch("http://localhost:8003/process_ods", {
-            method: "POST",
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error("Erro ao enviar arquivo");
+        function setStatus(type, message) {
+            statusEl.className = "status";
+            statusEl.textContent = "";
+            if (!message) {
+                return;
+            }
+            statusEl.classList.add(type);
+            statusEl.textContent = message;
         }
 
-        const data = await response.json();
-        console.log(data);
-        alert("Arquivo enviado com sucesso!");
+        processButton.addEventListener("click", async () => {
+            const file = input.files[0];
+            if (!file) {
+                setStatus("error", "Selecione um arquivo antes de processar.");
+                return;
+            }
 
-        // 🔥 LIMPA O CAMPO APÓS ENVIO
-        input.value = "";
+            const formData = new FormData();
+            formData.append("file", file);
 
-    } catch (error) {
-        console.error(error);
-        alert("Erro ao enviar arquivo.");
-    }
+            setStatus("loading", "Enviando arquivo...");
+            try {
+                const response = await fetch("/process_ods", {
+                    method: "POST",
+                    body: formData,
+                });
 
-});
-</script>
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao enviar arquivo.");
+                }
 
-
+                setStatus("success", "Arquivo enviado com sucesso.");
+                input.value = "";
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao enviar arquivo.");
+            }
+        });
+    </script>
 </body>
 </html>

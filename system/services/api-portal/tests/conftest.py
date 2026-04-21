@@ -69,6 +69,22 @@ def truncate_table(module):
         conn.commit()
 
 
+def truncate_portal_users(module):
+    with module.get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE portal_users RESTART IDENTITY;")
+        conn.commit()
+
+
+def seed_admin_user(module, username: str = "admin", password: str = "admin123"):
+    module.create_portal_user(
+        username=username,
+        credential="admin",
+        password_hash=module.hash_password(password),
+        is_active=True,
+    )
+
+
 def ensure_database_available(module):
     try:
         with module.get_connection() as conn:
@@ -128,5 +144,16 @@ def fake_s3_store():
 
 @pytest.fixture
 def client(portal_module):
+    with TestClient(portal_module.app) as test_client:
+        login_response = test_client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "admin123"},
+        )
+        assert login_response.status_code == 200
+        yield test_client
+
+
+@pytest.fixture
+def anonymous_client(portal_module):
     with TestClient(portal_module.app) as test_client:
         yield test_client

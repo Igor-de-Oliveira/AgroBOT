@@ -31,17 +31,22 @@
 
         .nav-links {
             display: flex;
-            gap: 15px;
+            align-items: center;
+            gap: 12px;
         }
 
-        .nav-links a {
+        .nav-links a, .nav-links button {
             text-decoration: none;
             color: white;
             padding: 10px 15px;
             border-radius: 5px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
         }
 
-        .nav-links a:hover {
+        .nav-links a:hover, .nav-links button:hover {
             background-color: #34495e;
         }
 
@@ -223,8 +228,13 @@
     <nav class="navbar">
         <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
         <div class="nav-links">
-            <a href="/user">Usuario</a>
             <a href="/arquivos">Arquivos</a>
+            {% if current_user and current_user.credential == "admin" %}
+            <a href="/usuarios">Usuarios</a>
+            {% endif %}
+            <form action="/logout" method="post" style="margin: 0;">
+                <button type="submit">Logout</button>
+            </form>
         </div>
     </nav>
 

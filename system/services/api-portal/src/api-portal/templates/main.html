@@ -2,72 +2,32 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Portal AgroBot</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #2c3e50;
-            padding: 0 20px;
-        }
-
-        .content {
-            padding: 0 20px;
-        }
-
-        .logo {
-            color: white;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .logo:hover {
-            opacity: 0.8;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 15px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-
-        .nav-links a:hover {
-            background-color: #34495e;
-        }
-    </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Portal AgroBot</title>
+        <link rel="stylesheet" href="/static/css/styles_main.css">
 </head>
 <body>
-
     <nav class="navbar">
-        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;" /> </a>
-        
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
 
         <div class="nav-links">
-            <a href="/user">Usuário</a>
             <a href="/arquivos">Arquivos</a>
-            <a href="tela2.html">Tela 2</a>
-            <a href="tela3.html">Chat web</a>
+            {% if current_user and current_user.credential == "admin" %}
+            <a href="/usuarios">Usuarios</a>
+            {% endif %}
+            <form action="/logout" method="post" style="margin: 0;">
+                <button type="submit">Logout</button>
+            </form>
         </div>
     </nav>
 
-    <div class="content">
-        <h1>Bem-vindo à Página Principal</h1>
-        <p>Use a navbar acima para navegar.</p>
-    </div>
-
+    <main class="container">
+        <div class="card">
+            <h1>Bem-vindo ao Portal AgroBot</h1>
+            <p>Usuario autenticado: <strong>{{ current_user.username }}</strong></p>
+            <p>Perfil: <strong>{{ current_user.credential }}</strong></p>
+            <p>Use a navegacao superior para acessar arquivos e, quando permitido, a gestao de usuarios.</p>
+        </div>
+    </main>
 </body>
 </html>

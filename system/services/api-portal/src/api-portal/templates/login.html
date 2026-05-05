@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Portal AgroBot</title>
+    <link rel="stylesheet" href="/static/css/styles_login.css">
+</head>
+<body>
+    <main class="card">
+        <div class="header">
+            <img src="/static/image.png" alt="AgroBot" style="height: 32px;">
+            <h1 style="margin: 0; font-size: 22px;">Portal AgroBot</h1>
+        </div>
+
+        <p>Faca login para continuar.</p>
+
+        <div id="status" class="status {% if error_message %}error{% endif %}">{% if error_message %}{{ error_message }}{% endif %}</div>
+
+        <form id="login-form" method="post" action="/login">
+            <label for="username">Usuario</label>
+            <input type="text" id="username" name="username" required maxlength="120" autocomplete="username">
+
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password" required maxlength="256" autocomplete="current-password">
+
+            <button type="submit">Entrar</button>
+        </form>
+    </main>
+
+    <script>
+        const form = document.getElementById("login-form");
+        const statusEl = document.getElementById("status");
+
+        form.addEventListener("submit", () => {
+            statusEl.className = "status loading";
+            statusEl.textContent = "Autenticando...";
+        });
+    </script>
+</body>
+</html>

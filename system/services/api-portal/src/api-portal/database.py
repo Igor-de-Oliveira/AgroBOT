@@ -23,6 +23,18 @@ def get_connection() -> Connection:
     )
 
 
+def _serialize_portal_user(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "username": row["username"],
+        "credential": row["credential"],
+        "is_active": row["is_active"],
+        "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+        "updated_at": row["updated_at"].isoformat() if row.get("updated_at") else None,
+        "last_login_at": row["last_login_at"].isoformat() if row.get("last_login_at") else None,
+    }
+
+
 def ensure_file_metadata_table(base_dir: str) -> None:
     migrations_dir = Path(base_dir).resolve().parents[1] / "migrations"
     migration_files = sorted(migrations_dir.glob("*.sql"))
@@ -31,6 +43,157 @@ def ensure_file_metadata_table(base_dir: str) -> None:
             for migration_file in migration_files:
                 ddl = migration_file.read_text(encoding="utf-8")
                 cur.execute(ddl)
+        conn.commit()
+
+
+def count_portal_users() -> int:
+    query = "SELECT COUNT(*) AS total FROM portal_users;"
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query)
+            row = cur.fetchone() or {"total": 0}
+    return int(row["total"])
+
+
+def fetch_portal_user_by_username(
+    username: str, *, include_password_hash: bool = False
+) -> Optional[dict[str, Any]]:
+    select_fields = """
+    id, username, credential, is_active, created_at, updated_at, last_login_at
+    """
+    if include_password_hash:
+        select_fields = f"{select_fields}, password_hash"
+
+    query = f"""
+    SELECT {select_fields}
+    FROM portal_users
+    WHERE username = %s;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query, (username,))
+            row = cur.fetchone()
+
+    if not row:
+        return None
+    if include_password_hash:
+        return dict(row)
+    return _serialize_portal_user(row)
+
+
+def list_portal_users() -> list[dict[str, Any]]:
+    query = """
+    SELECT id, username, credential, is_active, created_at, updated_at, last_login_at
+    FROM portal_users
+    ORDER BY created_at DESC, id DESC;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query)
+            rows = cur.fetchall()
+    return [_serialize_portal_user(row) for row in rows]
+
+
+def fetch_portal_user_by_id(user_id: int) -> Optional[dict[str, Any]]:
+    query = """
+    SELECT id, username, credential, is_active, created_at, updated_at, last_login_at
+    FROM portal_users
+    WHERE id = %s;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query, (user_id,))
+            row = cur.fetchone()
+    if not row:
+        return None
+    return _serialize_portal_user(row)
+
+
+def create_portal_user(
+    *,
+    username: str,
+    credential: str,
+    password_hash: str,
+    is_active: bool = True,
+) -> dict[str, Any]:
+    query = """
+    INSERT INTO portal_users (username, credential, password_hash, is_active)
+    VALUES (%s, %s, %s, %s)
+    RETURNING id, username, credential, is_active, created_at, updated_at, last_login_at;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query, (username, credential, password_hash, is_active))
+            row = cur.fetchone()
+        conn.commit()
+    return _serialize_portal_user(row)
+
+
+def update_portal_user(
+    *,
+    user_id: int,
+    username: str,
+    credential: str,
+    is_active: bool,
+    password_hash: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
+    query = """
+    UPDATE portal_users
+    SET
+        username = %s,
+        credential = %s,
+        is_active = %s,
+        password_hash = COALESCE(%s, password_hash),
+        updated_at = NOW()
+    WHERE id = %s
+    RETURNING id, username, credential, is_active, created_at, updated_at, last_login_at;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query, (username, credential, is_active, password_hash, user_id))
+            row = cur.fetchone()
+        conn.commit()
+    if not row:
+        return None
+    return _serialize_portal_user(row)
+
+
+def deactivate_portal_user(user_id: int) -> Optional[dict[str, Any]]:
+    query = """
+    UPDATE portal_users
+    SET is_active = FALSE, updated_at = NOW()
+    WHERE id = %s
+    RETURNING id, username, credential, is_active, created_at, updated_at, last_login_at;
+    """
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(query, (user_id,))
+            row = cur.fetchone()
+        conn.commit()
+    if not row:
+        return None
+    return _serialize_portal_user(row)
+
+
+def delete_portal_user_by_id(user_id: int) -> bool:
+    query = "DELETE FROM portal_users WHERE id = %s;"
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (user_id,))
+            deleted = cur.rowcount > 0
+        conn.commit()
+    return deleted
+
+
+def touch_portal_user_last_login(user_id: int) -> None:
+    query = """
+    UPDATE portal_users
+    SET last_login_at = NOW(), updated_at = NOW()
+    WHERE id = %s;
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (user_id,))
         conn.commit()
 
 

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestao de usuarios</title>
+    <link rel="stylesheet" href="/static/css/styles_usuarios.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
+        <div class="nav-links">
+            <a href="/arquivos">Arquivos</a>
+            <a href="/usuarios">Usuarios</a>
+            <form action="/logout" method="post" style="margin: 0;">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Gestao de usuarios</h1>
+        <div id="status" class="status"></div>
+
+        <div class="grid">
+            <section class="card">
+                <h2 id="form-title">Cadastrar usuario</h2>
+                <form id="user-form">
+                    <input type="hidden" id="editing-id" value="">
+
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required minlength="3" maxlength="120">
+
+                    <label for="credential">Credential</label>
+                    <select id="credential" required>
+                        <option value="usuario">usuario</option>
+                        <option value="admin">admin</option>
+                    </select>
+
+                    <label for="is-active">Status</label>
+                    <select id="is-active" required>
+                        <option value="true">Ativo</option>
+                        <option value="false">Inativo</option>
+                    </select>
+
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" minlength="8" maxlength="256" placeholder="Obrigatoria no cadastro">
+
+                    <div class="actions">
+                        <button type="submit" id="save-button">Salvar</button>
+                        <button type="button" id="cancel-button" style="display:none;">Cancelar edicao</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="card">
+                <h2>Usuarios cadastrados</h2>
+                <div id="empty-state" class="empty">Nenhum usuario registrado.</div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Credential</th>
+                                <th>Status</th>
+                                <th>Criado em</th>
+                                <th>Ultimo login</th>
+                                <th>Acoes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rows"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const statusEl = document.getElementById("status");
+        const rowsEl = document.getElementById("rows");
+        const emptyStateEl = document.getElementById("empty-state");
+
+        const userForm = document.getElementById("user-form");
+        const editingIdEl = document.getElementById("editing-id");
+        const formTitleEl = document.getElementById("form-title");
+        const usernameEl = document.getElementById("username");
+        const credentialEl = document.getElementById("credential");
+        const isActiveEl = document.getElementById("is-active");
+        const passwordEl = document.getElementById("password");
+        const cancelButton = document.getElementById("cancel-button");
+
+        const state = {
+            users: [],
+            loading: false,
+        };
+
+        function setStatus(type, message) {
+            statusEl.className = "status";
+            statusEl.textContent = "";
+            if (!message) {
+                return;
+            }
+            statusEl.classList.add(type);
+            statusEl.textContent = message;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return "-";
+            return new Date(dateString).toLocaleString("pt-BR");
+        }
+
+        function renderRows() {
+            rowsEl.innerHTML = "";
+
+            if (!state.users.length) {
+                emptyStateEl.style.display = "block";
+                return;
+            }
+
+            emptyStateEl.style.display = "none";
+
+            state.users.forEach((user) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.credential}</td>
+                    <td>
+                        <span class="badge ${user.is_active ? "badge-active" : "badge-inactive"}">
+                            ${user.is_active ? "Ativo" : "Inativo"}
+                        </span>
+                    </td>
+                    <td>${formatDate(user.created_at)}</td>
+                    <td>${formatDate(user.last_login_at)}</td>
+                    <td>
+                        <div class="actions">
+                            <button data-edit-id="${user.id}">Editar</button>
+                            <button class="danger" data-deactivate-id="${user.id}">Inativar</button>
+                            <button class="danger" data-delete-id="${user.id}">Remover</button>
+                        </div>
+                    </td>
+                `;
+                rowsEl.appendChild(tr);
+            });
+        }
+
+        async function loadUsers() {
+            state.loading = true;
+            setStatus("loading", "Carregando usuarios...");
+            try {
+                const response = await fetch("/api/users");
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao buscar usuarios.");
+                }
+
+                state.users = payload.items || [];
+                renderRows();
+                setStatus("", "");
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao carregar usuarios.");
+            } finally {
+                state.loading = false;
+            }
+        }
+
+        function resetForm() {
+            editingIdEl.value = "";
+            formTitleEl.textContent = "Cadastrar usuario";
+            usernameEl.value = "";
+            credentialEl.value = "usuario";
+            isActiveEl.value = "true";
+            passwordEl.value = "";
+            passwordEl.placeholder = "Obrigatoria no cadastro";
+            passwordEl.required = true;
+            cancelButton.style.display = "none";
+        }
+
+        function fillForm(user) {
+            editingIdEl.value = String(user.id);
+            formTitleEl.textContent = `Editando usuario #${user.id}`;
+            usernameEl.value = user.username;
+            credentialEl.value = user.credential;
+            isActiveEl.value = String(user.is_active);
+            passwordEl.value = "";
+            passwordEl.placeholder = "Opcional na edicao";
+            passwordEl.required = false;
+            cancelButton.style.display = "inline-block";
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+
+            const editingId = editingIdEl.value;
+            const payload = {
+                username: usernameEl.value.trim(),
+                credential: credentialEl.value,
+                is_active: isActiveEl.value === "true",
+            };
+
+            const rawPassword = passwordEl.value;
+            if (!editingId) {
+                if (!rawPassword || rawPassword.length < 8) {
+                    setStatus("error", "Senha obrigatoria com no minimo 8 caracteres.");
+                    return;
+                }
+                payload.password = rawPassword;
+            } else if (rawPassword) {
+                if (rawPassword.length < 8) {
+                    setStatus("error", "Senha opcional deve ter no minimo 8 caracteres.");
+                    return;
+                }
+                payload.password = rawPassword;
+            }
+
+            const endpoint = editingId ? `/api/users/${editingId}` : "/api/users";
+            const method = editingId ? "PUT" : "POST";
+            const loadingMessage = editingId ? "Atualizando usuario..." : "Cadastrando usuario...";
+
+            setStatus("loading", loadingMessage);
+            try {
+                const response = await fetch(endpoint, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                const responsePayload = await response.json();
+                if (!response.ok) {
+                    throw new Error(responsePayload.detail || "Falha ao salvar usuario.");
+                }
+
+                setStatus("success", editingId ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso.");
+                resetForm();
+                await loadUsers();
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao salvar usuario.");
+            }
+        }
+
+        async function deactivateUser(userId) {
+            const confirmed = window.confirm("Confirma a inativacao do usuario?");
+            if (!confirmed) return;
+
+            setStatus("loading", "Inativando usuario...");
+            try {
+                const response = await fetch(`/api/users/${userId}/deactivate`, { method: "POST" });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao inativar usuario.");
+                }
+
+                setStatus("success", "Usuario inativado com sucesso.");
+                await loadUsers();
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao inativar usuario.");
+            }
+        }
+
+        async function deleteUser(userId) {
+            const confirmed = window.confirm("Confirma a remocao fisica do usuario?");
+            if (!confirmed) return;
+
+            setStatus("loading", "Removendo usuario...");
+            try {
+                const response = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Falha ao remover usuario.");
+                }
+
+                setStatus("success", "Usuario removido com sucesso.");
+                await loadUsers();
+            } catch (error) {
+                setStatus("error", error.message || "Erro ao remover usuario.");
+            }
+        }
+
+        rowsEl.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+
+            const editId = target.getAttribute("data-edit-id");
+            if (editId) {
+                const user = state.users.find((item) => item.id === Number(editId));
+                if (user) {
+                    fillForm(user);
+                }
+                return;
+            }
+
+            const deactivateId = target.getAttribute("data-deactivate-id");
+            if (deactivateId) {
+                deactivateUser(Number(deactivateId));
+                return;
+            }
+
+            const deleteId = target.getAttribute("data-delete-id");
+            if (deleteId) {
+                deleteUser(Number(deleteId));
+            }
+        });
+
+        cancelButton.addEventListener("click", () => {
+            resetForm();
+            setStatus("", "");
+        });
+
+        userForm.addEventListener("submit", submitForm);
+
+        resetForm();
+        loadUsers();
+    </script>
+</body>
+</html>

@@ -75,12 +75,27 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Permitir exclusao coordenada de artefatos (`Arquivos/`, `Json/`) e metadado relacional
 - Permitir futuras integracoes e novas features
 
+### 4.7 Autenticacao e Gestao de Usuarios
+- Exigir login previo para acesso as rotas protegidas do portal web
+- Manter sessao server-side com cookie seguro (`HttpOnly`, `SameSite`, expiracao e `Secure` por ambiente)
+- Disponibilizar login, logout e status de sessao no `api-portal`
+- Persistir usuarios em tabela dedicada `portal_users` com `username` unico, `credential`, `password_hash`, `is_active` e metadados de auditoria
+- Permitir CRUD de usuarios somente para contas com `credential=admin`
+- Permitir inativacao logica e remocao fisica de contas conforme necessidade operacional
+- Garantir nao exposicao de senha e `password_hash` em APIs, templates e logs
+
 ---
 
 ## 5. Escopo do Sistema
 
 ### 5.1 Incluido
 - Upload e processamento de arquivos
+- Login obrigatorio para navegacao no portal
+- Controle de sessao autenticada com redirecionamento para `/login` em rotas protegidas
+- Persistencia de usuarios e credenciais em `portal_users`
+- CRUD administrativo de usuarios com perfis iniciais `admin` e `usuario`
+- Seed de usuario administrativo inicial com senha hasheada
+- Inativacao logica (`is_active=false`) e remocao fisica de usuarios
 - Conversao e estruturacao de dados
 - Indexacao em banco vetorial
 - Persistencia de metadados de arquivo (id, nome, hash, created_at, updated_at, links AWS/S3)
@@ -108,6 +123,13 @@ O sistema e composto pelos seguintes servicos:
 ### 6.1 api-portal
 Responsavel por:
 - Interface web
+- Renderizar tela de login e tela administrativa de usuarios
+- Validar credenciais (`username` + `password`) e criar sessao autenticada
+- Invalidar sessao em logout e em conta inativa/removida
+- Aplicar guarda de rotas protegidas e redirecionar para `/login` quando necessario
+- Aplicar autorizacao para operacoes administrativas de usuarios (`credential=admin`)
+- Expor endpoints de autenticacao (`/api/auth/login`, `/api/auth/logout`, `/api/auth/session`)
+- Expor endpoints de gestao de usuarios (`/api/users`, detalhe, edicao, inativacao, remocao)
 - Receber upload inicial do usuario
 - Calcular hash do arquivo enviado
 - Verificar existencia de arquivo no banco e no S3 para decidir create/overwrite/reconciliacao
@@ -151,7 +173,9 @@ Responsavel por:
 ### 6.5 postgres-arquivos (PostgreSQL 17)
 Responsavel por:
 - Persistencia relacional de metadados de arquivos enviados
+- Persistencia relacional de usuarios do portal em `portal_users`
 - Garantia de integridade de registros de upload
+- Garantia de unicidade de `username` e integridade de estado de conta (`is_active`)
 - Suporte a rastreabilidade via hash + links de objetos em S3/MinIO
 
 ### 6.6 minio (abstracao S3)
@@ -201,6 +225,18 @@ Responsavel por:
 8. Backend remove objetos em `Arquivos/` e `Json/` e remove metadado no PostgreSQL
 9. Em falha parcial, backend retorna erro e nao sinaliza sucesso falso
 
+### 7.2 Fluxo de autenticacao e gestao de usuarios
+
+1. Usuario acessa o portal sem sessao valida
+2. Backend redireciona para `/login` e bloqueia conteudo protegido
+3. Usuario informa `username` e `password`
+4. `api-portal` valida senha contra `password_hash` armazenado em `portal_users`
+5. Em sucesso, sistema cria sessao, atualiza `last_login_at` e libera rotas protegidas
+6. Em falha, sistema retorna erro amigavel sem expor detalhes sensiveis
+7. Usuario administrador acessa `/usuarios` pela navbar e executa cadastro/edicao/inativacao/remocao
+8. Endpoints de usuarios retornam somente campos nao sensiveis (nunca senha nem `password_hash`)
+9. Em logout, sessao e invalidada e novo acesso exige autenticacao
+
 ---
 
 ## 8. Requisitos Nao Funcionais
@@ -226,12 +262,19 @@ Responsavel por:
 - Padronizacao de erros da etapa de embeddings para diagnostico operacional
 - Transicao de status rastreavel para monitoramento de itens em processamento, processados e com erro
 
-### 8.4 Manutenibilidade
+### 8.4 Seguranca
+- Senhas persistidas exclusivamente com hash forte (PBKDF2-HMAC-SHA256 com salt)
+- Bloqueio de acesso a rotas protegidas sem sessao valida
+- Restricao de CRUD de usuarios ao perfil administrativo
+- Sanitizacao de logs de autenticacao para nao registrar senha enviada
+- Controle de cookie de sessao com atributos de seguranca por ambiente
+
+### 8.5 Manutenibilidade
 - Codigo modular
 - Separacao clara de responsabilidades
 - Migrations versionadas para evolucao de schema relacional
 
-### 8.5 Observabilidade (futuro)
+### 8.6 Observabilidade (futuro)
 - Logs centralizados
 - Monitoramento de servicos
 - Indicadores de upload e persistencia de metadados
@@ -245,7 +288,7 @@ Responsavel por:
 - Integracao com sensores IoT
 - Expansao do modelo de IA
 - Dashboard analitico no portal web
-- Multiusuario e autenticacao
+- Evolucao do modelo de autorizacao para novos tipos de `credential`
 - Historico de consultas e relatorios
 - Evolucao do modelo de metadados para versionamento completo de arquivos
 
@@ -255,6 +298,11 @@ Responsavel por:
 
 O sistema sera considerado bem-sucedido se:
 
+- Usuarios nao conseguirem acessar rotas protegidas sem autenticacao
+- Usuarios conseguirem realizar login/logout com controle de sessao consistente
+- Usuarios administradores conseguirem cadastrar, editar, inativar e remover usuarios
+- Usuarios nao administradores forem bloqueados no CRUD de usuarios
+- Nenhum endpoint/template expuser senha ou `password_hash`
 - Usuarios conseguirem enviar dados sem erros
 - Usuarios conseguirem consultar arquivos registrados com navegacao paginada
 - Usuarios conseguirem visualizar detalhes e baixar artefatos do arquivo selecionado

@@ -4,114 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes do arquivo</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f5f7fb;
-        }
-
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #2c3e50;
-            padding: 0 20px;
-        }
-
-        .logo {
-            color: white;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: bold;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 15px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-        }
-
-        .nav-links a:hover {
-            background-color: #34495e;
-        }
-
-        .container {
-            max-width: 760px;
-            margin: 24px auto;
-            padding: 0 16px;
-        }
-
-        .card {
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            padding: 20px;
-        }
-
-        .meta-grid {
-            display: grid;
-            grid-template-columns: 160px 1fr;
-            row-gap: 10px;
-            column-gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .meta-label {
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .status {
-            margin-bottom: 12px;
-            padding: 12px;
-            border-radius: 6px;
-            display: none;
-        }
-
-        .status.loading {
-            display: block;
-            background: #e9f2ff;
-            color: #1f4e85;
-        }
-
-        .status.error {
-            display: block;
-            background: #ffe9e9;
-            color: #9d1f1f;
-        }
-
-        .btn-row {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            border-radius: 6px;
-            border: 1px solid #cad4e0;
-            background: #ffffff;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles_arquivo_detalhe.css">
 </head>
 <body>
     <nav class="navbar">
         <a href="/" class="logo">Portal AgroBot <img src="/static/image.png" alt="AgroBot" style="height: 30px;"></a>
         <div class="nav-links">
-            <a href="/user">Usuário</a>
             <a href="/arquivos">Arquivos</a>
+            {% if current_user and current_user.credential == "admin" %}
+            <a href="/usuarios">Usuarios</a>
+            {% endif %}
+            <form action="/logout" method="post" style="margin: 0;">
+                <button type="submit">Logout</button>
+            </form>
         </div>
     </nav>
 
@@ -159,17 +64,17 @@
 
         function startDownload(link, label) {
             if (!link || typeof link !== "string") {
-                setStatus("error", `Link de ${label} ausente ou inválido.`);
+                setStatus("error", `Link de ${label} ausente ou invalido.`);
                 return;
             }
             try {
                 const parsed = new URL(link);
                 if (!parsed.protocol.startsWith("http")) {
-                    throw new Error("Protocolo inválido");
+                    throw new Error("Protocolo invalido");
                 }
                 window.open(link, "_blank", "noopener,noreferrer");
             } catch (error) {
-                setStatus("error", `Link de ${label} ausente ou inválido.`);
+                setStatus("error", `Link de ${label} ausente ou invalido.`);
             }
         }
 

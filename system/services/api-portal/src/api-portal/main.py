@@ -95,6 +95,7 @@ templates = Jinja2Templates(directory=os.path.join(dirname, "templates"))
 
 API_EXTRACTOR_URL = os.getenv("API_EXTRACTOR_URL", "http://api-extractor:8001/process_ods")
 API_LLM_INGEST_URL = os.getenv("API_LLM_INGEST_URL", "http://api-llm:8002/ingest_json_reference")
+API_LLM_CHAT_URL = os.getenv("API_LLM_CHAT_URL", "http://api-llm:8002/chat")
 ALLOWED_PAGE_SIZES = {25, 50, 100}
 
 SESSION_SECRET_KEY = os.getenv("PORTAL_SESSION_SECRET", "dev-portal-session-secret-change-me")
@@ -125,6 +126,10 @@ class UpdatePortalUserPayload(BaseModel):
     credential: str = Field(min_length=1, max_length=50)
     is_active: bool = True
     password: Optional[str] = Field(default=None, min_length=8, max_length=256)
+
+
+class WebChatPayload(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
 
 
 def get_allowed_credentials() -> set[str]:
@@ -376,6 +381,15 @@ async def processamento_arquivos(request: Request):
     return templates.TemplateResponse("procesamento_arquivos.html", {"request": request, "current_user": current_user})
 
 
+@app.get("/chat-web", response_class=HTMLResponse)
+async def chat_web_page(request: Request):
+    redirect = redirect_if_not_authenticated(request)
+    if redirect:
+        return redirect
+    current_user = get_authenticated_user(request)
+    return templates.TemplateResponse("chat_web.html", {"request": request, "current_user": current_user})
+
+
 @app.post("/process_ods")
 async def process_upload(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     require_authenticated_api_user(request)
@@ -464,6 +478,39 @@ async def delete_file(request: Request, file_id: int):
         raise HTTPException(status_code=404, detail="Arquivo nao encontrado para exclusao.")
 
     return {"message": "Arquivo excluido com sucesso.", "id": file_id}
+
+
+@app.post("/api/chat/web")
+async def web_chat(request: Request, payload: WebChatPayload):
+    require_authenticated_api_user(request)
+    question = payload.message.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Mensagem obrigatoria e nao pode ser vazia.")
+
+    try:
+        llm_response = requests.get(API_LLM_CHAT_URL, params={"string": question}, timeout=45)
+        llm_payload = llm_response.json()
+    except requests.RequestException as exc:
+        logger.error("api_portal_chat_web_proxy_error request_failed error=%s", str(exc))
+        raise HTTPException(status_code=502, detail="Nao foi possivel obter resposta do chat no momento.") from exc
+    except ValueError as exc:
+        logger.error("api_portal_chat_web_proxy_error invalid_json error=%s", str(exc))
+        raise HTTPException(status_code=502, detail="Resposta invalida do servico de chat.") from exc
+
+    if not llm_response.ok:
+        logger.error(
+            "api_portal_chat_web_proxy_error upstream_status=%s upstream_payload=%s",
+            llm_response.status_code,
+            llm_payload,
+        )
+        raise HTTPException(status_code=502, detail="Servico de chat indisponivel no momento.")
+
+    answer = str(llm_payload.get("response", "")).strip()
+    if not answer:
+        logger.error("api_portal_chat_web_proxy_error missing_response_field payload=%s", llm_payload)
+        raise HTTPException(status_code=502, detail="Resposta vazia recebida do servico de chat.")
+
+    return {"reply": answer}
 
 
 @app.get("/api/users")

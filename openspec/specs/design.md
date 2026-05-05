@@ -53,6 +53,7 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 
 ### 4.4 Interface Conversacional
 - Disponibilizar chatbot via Telegram
+- Disponibilizar chatbot via Chat Web no `api-portal`
 - Permitir consultas em linguagem natural
 - Retornar respostas claras e contextualizadas
 
@@ -69,6 +70,8 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 ### 4.6 Expansao da Plataforma
 - Evoluir o portal web (api-portal)
 - Centralizar funcionalidades de upload e observabilidade do processamento
+- Disponibilizar pagina "Chat Web" protegida por autenticacao e acessivel pela navbar
+- Padronizar estrutura visual da navbar do Chat Web para manter consistencia com as paginas existentes do portal
 - Disponibilizar listagem paginada de arquivos com `page_size` 25/50/100
 - Disponibilizar tela de detalhes do arquivo com metadados e downloads
 - Exibir status de processamento por item na listagem com labels de interface
@@ -106,6 +109,7 @@ Desenvolver uma plataforma escalavel, modular e orientada a dados para monitorar
 - Consulta de detalhe por arquivo com `id`, `name`, `hash`, `created_at`, links AWS e `status_processamento`
 - Exclusao completa de arquivo (S3 + banco) com retorno de falha em caso de inconsistencia
 - Consulta via chatbot
+- Consulta via chatbot no portal web (Chat Web) com historico em memoria da sessao da pagina
 - Arquitetura baseada em servicos independentes
 
 ### 5.2 Nao Incluido (Atual)
@@ -124,11 +128,13 @@ O sistema e composto pelos seguintes servicos:
 Responsavel por:
 - Interface web
 - Renderizar tela de login e tela administrativa de usuarios
+- Renderizar pagina de Chat Web com area de mensagens, input e acao de envio
 - Validar credenciais (`username` + `password`) e criar sessao autenticada
 - Invalidar sessao em logout e em conta inativa/removida
 - Aplicar guarda de rotas protegidas e redirecionar para `/login` quando necessario
 - Aplicar autorizacao para operacoes administrativas de usuarios (`credential=admin`)
 - Expor endpoints de autenticacao (`/api/auth/login`, `/api/auth/logout`, `/api/auth/session`)
+- Expor endpoint `POST /api/chat/web` protegido por sessao para encaminhar perguntas do frontend web ao `api-llm`
 - Expor endpoints de gestao de usuarios (`/api/users`, detalhe, edicao, inativacao, remocao)
 - Receber upload inicial do usuario
 - Calcular hash do arquivo enviado
@@ -147,6 +153,9 @@ Responsavel por:
 - Expor endpoint de exclusao coordenada entre S3 e PostgreSQL
 - Renderizar listagem web com controles de paginacao, tamanho de pagina, status por item e acoes de item
 - Renderizar pagina de detalhes com botoes de download de arquivo original e JSON
+- Aplicar validacao de payload de chat web (mensagem obrigatoria e nao vazia)
+- Normalizar resposta do `api-llm` para payload simples ao frontend (`reply`)
+- Padronizar logs de erro para falhas de chamada ao endpoint `/chat` do `api-llm`
 
 ### 6.2 api-extractor
 Responsavel por:
@@ -225,7 +234,19 @@ Responsavel por:
 8. Backend remove objetos em `Arquivos/` e `Json/` e remove metadado no PostgreSQL
 9. Em falha parcial, backend retorna erro e nao sinaliza sucesso falso
 
-### 7.2 Fluxo de autenticacao e gestao de usuarios
+### 7.2 Fluxo de conversa no Chat Web
+
+1. Usuario autenticado acessa a pagina `/chat-web` pela navbar do portal
+2. Frontend valida que a mensagem enviada nao e vazia
+3. Frontend adiciona imediatamente a mensagem do usuario no historico local e ativa loading
+4. Frontend chama `POST /api/chat/web` no `api-portal`
+5. Backend valida sessao autenticada e payload
+6. Backend encaminha pergunta para `GET /chat` da `api-llm`
+7. Backend normaliza resposta e retorna `reply` para o frontend
+8. Frontend adiciona mensagem do bot no historico e remove loading
+9. Em erro de comunicacao, frontend exibe mensagem amigavel sem remover mensagens ja renderizadas
+
+### 7.3 Fluxo de autenticacao e gestao de usuarios
 
 1. Usuario acessa o portal sem sessao valida
 2. Backend redireciona para `/login` e bloqueia conteudo protegido
@@ -268,6 +289,7 @@ Responsavel por:
 - Restricao de CRUD de usuarios ao perfil administrativo
 - Sanitizacao de logs de autenticacao para nao registrar senha enviada
 - Controle de cookie de sessao com atributos de seguranca por ambiente
+- Sanitizacao basica de entrada no fluxo de chat web (`trim`) e renderizacao segura das mensagens no frontend sem execucao de HTML
 
 ### 8.5 Manutenibilidade
 - Codigo modular
@@ -304,6 +326,11 @@ O sistema sera considerado bem-sucedido se:
 - Usuarios nao administradores forem bloqueados no CRUD de usuarios
 - Nenhum endpoint/template expuser senha ou `password_hash`
 - Usuarios conseguirem enviar dados sem erros
+- Usuarios autenticados conseguirem acessar "Chat Web" pela navbar com estrutura visual consistente com as demais paginas
+- Usuarios conseguirem enviar pergunta valida no Chat Web e receber resposta do bot na conversa
+- Usuarios receberem bloqueio/validacao ao tentar enviar pergunta vazia
+- Usuarios receberem feedback de erro amigavel em falhas de comunicacao com o `api-llm`
+- Usuarios nao autenticados nao conseguirem acessar pagina nem endpoint de Chat Web
 - Usuarios conseguirem consultar arquivos registrados com navegacao paginada
 - Usuarios conseguirem visualizar detalhes e baixar artefatos do arquivo selecionado
 - Usuarios conseguirem acompanhar o status de processamento (`em_processamento`, `processado`, `erro`) na listagem e no detalhe
